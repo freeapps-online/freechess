@@ -1,9 +1,13 @@
 import { Chess } from 'chess.js'
 import type { MoveAnalysis } from '../types.ts'
-import { evaluateMove } from './engine.ts'
+import { evaluateMove, evaluateMoveSF, useStockfish } from './engine.ts'
+import type { Difficulty } from '../types.ts'
 
-export function analyzePlayerMove(chess: Chess, moveSan: string, playerColor: 'w' | 'b'): MoveAnalysis {
-  const { evalAfter, bestMove, bestEval } = evaluateMove(chess, moveSan)
+export async function analyzePlayerMove(chess: Chess, moveSan: string, playerColor: 'w' | 'b', difficulty: Difficulty = 2): Promise<MoveAnalysis> {
+  const useSF = useStockfish(difficulty)
+  const { evalAfter, bestMove, bestEval } = useSF
+    ? await evaluateMoveSF(chess, moveSan)
+    : evaluateMove(chess, moveSan)
 
   // Calculate evaluation swing from the player's perspective
   const sign = playerColor === 'w' ? 1 : -1

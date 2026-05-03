@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { Chess, Square } from 'chess.js'
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -60,27 +60,51 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
     }
   }, [chess, playerColor, selectedSquare, legalTargets, onMove, onSquareClick])
 
-  const handleDragStart = useCallback((e: React.PointerEvent, sq: Square) => {
+  const dragStartRef = useRef<{ sq: Square; x: number; y: number; started: boolean } | null>(null)
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, sq: Square) => {
     const piece = chess.get(sq)
     if (!piece || piece.color !== playerColor || chess.turn() !== playerColor) return
 
-    e.preventDefault()
-    const rect = (e.currentTarget as HTMLElement).closest('.chess-board')!.getBoundingClientRect()
-    setDragFrom(sq)
-    setDragPiece(PIECE_CHARS[piece.color][piece.type])
-    setDragPos({ x: (e.clientX - rect.left) * 800 / rect.width, y: (e.clientY - rect.top) * 800 / rect.height })
-    onSquareClick?.(sq)
-  }, [chess, playerColor, onSquareClick])
+    dragStartRef.current = { sq, x: e.clientX, y: e.clientY, started: false }
+  }, [chess, playerColor])
 
   const handleDragMove = useCallback((e: React.PointerEvent) => {
+    const start = dragStartRef.current
+    if (!start) return
+
+    // Only begin visual drag after moving 8px (distinguishes tap from drag)
+    if (!start.started) {
+      const dx = e.clientX - start.x
+      const dy = e.clientY - start.y
+      if (dx * dx + dy * dy < 64) return
+      start.started = true
+      const piece = chess.get(start.sq)
+      if (piece) {
+        setDragFrom(start.sq)
+        setDragPiece(PIECE_CHARS[piece.color][piece.type])
+        onSquareClick?.(start.sq)
+      }
+    }
+
     if (!dragFrom) return
     e.preventDefault()
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     setDragPos({ x: (e.clientX - rect.left) * 800 / rect.width, y: (e.clientY - rect.top) * 800 / rect.height })
-  }, [dragFrom])
+  }, [chess, dragFrom, onSquareClick])
 
   const handleDragEnd = useCallback((e: React.PointerEvent) => {
-    if (!dragFrom) return
+    const start = dragStartRef.current
+    dragStartRef.current = null
+
+    if (!dragFrom || !start?.started) {
+      // Not a drag — it was a tap, handled by onClick
+      setDragFrom(null)
+      setDragPos(null)
+      setDragPiece(null)
+      return
+    }
+
     e.preventDefault()
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const sqSize = rect.width / 8
@@ -99,13 +123,14 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         const piece = chess.get(dragFrom)
         const isPromotion = piece?.type === 'p' && (to[1] === '8' || to[1] === '1')
         onMove(dragFrom, to, isPromotion ? 'q' : undefined)
+        onSquareClick?.(null)
       }
     }
 
     setDragFrom(null)
     setDragPos(null)
     setDragPiece(null)
-  }, [dragFrom, chess, files, ranks, onMove])
+  }, [dragFrom, chess, files, ranks, onMove, onSquareClick])
 
   return (
     <div className="relative w-full aspect-square select-none">
@@ -200,7 +225,7 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
                   fill="transparent"
                   style={{ cursor: 'pointer' }}
                   onClick={() => handleSquareClick(sq)}
-                  onPointerDown={(e) => handleDragStart(e, sq)}
+                  onPointerDown={(e) => handlePointerDown(e, sq)}
                 />
 
                 {/* Piece */}

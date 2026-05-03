@@ -1,5 +1,20 @@
 import { Chess, type Move } from 'chess.js'
 import type { Difficulty } from '../types.ts'
+import { stockfish } from './stockfish.ts'
+
+// Stockfish skill/depth settings per difficulty
+const SF_CONFIG: Record<Difficulty, { skill: number; depth: number }> = {
+  1: { skill: 0, depth: 1 },  // not used for SF, but here for completeness
+  2: { skill: 3, depth: 5 },  // not used for SF either
+  3: { skill: 5, depth: 8 },
+  4: { skill: 12, depth: 12 },
+  5: { skill: 20, depth: 16 },
+}
+
+// Use Stockfish for difficulty 3+ (async), minimax for 1-2 (sync)
+export function useStockfish(difficulty: Difficulty): boolean {
+  return difficulty >= 3 && stockfish.ready
+}
 
 // Piece values in centipawns
 const PIECE_VALUE: Record<string, number> = {
@@ -231,6 +246,64 @@ export function findBestMove(chess: Chess, difficulty: Difficulty): Move | null 
 export function evaluatePosition(chess: Chess): number {
   return evaluate(chess)
 }
+
+// --- Stockfish-powered functions (async) ---
+
+export async function findBestMoveSF(chess: Chess, difficulty: Difficulty): Promise<Move | null> {
+  const cfg = SF_CONFIG[difficulty]
+  await stockfish.setSkillLevel(cfg.skill)
+
+  const uciMove = await stockfish.findBestMove(chess.fen(), cfg.depth)
+  if (!uciMove) return null
+
+  // Convert UCI move (e.g. "e2e4") to chess.js Move
+  const from = uciMove.slice(0, 2)
+  const to = uciMove.slice(2, 4)
+  const promotion = uciMove.length > 4 ? uciMove[4] : undefined
+
+  const moves = chess.moves({ verbose: true })
+  return moves.find(m => m.from === from && m.to === to && (!promotion || m.promotion === promotion)) ?? null
+}
+
+export async function evaluatePositionSF(chess: Chess): Promise<number> {
+  const result = await stockfish.evaluate(chess.fen(), 10)
+  // Stockfish returns score from the side-to-move's perspective
+  // We want it from white's perspective
+  return chess.turn() === 'w' ? result.score : -result.score
+}
+
+export async function evaluateMoveSF(
+  chessBefore: Chess,
+  moveSan: string
+): Promise<{ evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number }> {
+  // Evaluate position before the move
+  const beforeResult = await stockfish.evaluate(chessBefore.fen(), 10)
+  const evalBefore = chessBefore.turn() === 'w' ? beforeResult.score : -beforeResult.score
+
+  // Best move from Stockfish
+  const sfBestUci = beforeResult.bestMove
+  let bestMoveSan: string | null = null
+  if (sfBestUci) {
+    const from = sfBestUci.slice(0, 2)
+    const to = sfBestUci.slice(2, 4)
+    const promo = sfBestUci.length > 4 ? sfBestUci[4] : undefined
+    const legal = chessBefore.moves({ verbose: true })
+    const match = legal.find(m => m.from === from && m.to === to && (!promo || m.promotion === promo))
+    if (match) bestMoveSan = match.san
+  }
+  const bestEval = evalBefore // best move eval ≈ position eval before
+
+  // Make the move and evaluate after
+  const clone = new Chess(chessBefore.fen())
+  clone.move(moveSan)
+  const afterResult = await stockfish.evaluate(clone.fen(), 10)
+  // After the move, it's the opponent's turn, so flip sign
+  const evalAfter = clone.turn() === 'w' ? afterResult.score : -afterResult.score
+
+  return { evalBefore, evalAfter, bestMove: bestMoveSan, bestEval }
+}
+
+// --- Minimax-only functions (sync, for difficulty 1-2) ---
 
 export function evaluateMove(chess: Chess, moveSan: string): { evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number } {
   const evalBefore = evaluate(chess)

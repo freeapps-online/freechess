@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Chess, type Square } from 'chess.js'
 import { Board } from './Board.tsx'
 import { MoveList } from './MoveList.tsx'
-import { findBestMove, evaluatePosition } from '../services/engine.ts'
+import { findBestMove, evaluatePosition, findBestMoveSF, evaluatePositionSF, useStockfish } from '../services/engine.ts'
+import { stockfish } from '../services/stockfish.ts'
 import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../services/analysis.ts'
 import { parseVoiceMove } from '../services/voiceMoves.ts'
 import { speech } from '../services/speech.ts'
@@ -18,9 +19,9 @@ interface PlayTabProps {
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   1: 'Beginner',
   2: 'Easy',
-  3: 'Medium',
-  4: 'Hard',
-  5: 'Expert',
+  3: 'Stockfish',
+  4: 'Stockfish+',
+  5: 'Stockfish Max',
 }
 
 export function PlayTab({ settings, update }: PlayTabProps) {
@@ -35,16 +36,28 @@ export function PlayTab({ settings, update }: PlayTabProps) {
   const [evaluation, setEvaluation] = useState(0)
   const [heardText, setHeardText] = useState('')
   const speechState = useSpeech()
+  const [sfReady, setSfReady] = useState(false)
   const listeningRef = useRef(false)
   const voiceRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const playerColor = settings.playerColor
   const isPlayerTurn = chess.turn() === playerColor && gameStatus === 'playing'
 
+  // Lazily load Stockfish when difficulty 3+
+  useEffect(() => {
+    if (settings.difficulty >= 3 && !stockfish.ready && !stockfish.failed) {
+      stockfish.init().then((ok) => setSfReady(ok))
+    }
+  }, [settings.difficulty])
+
   // Evaluate position whenever it changes
   useEffect(() => {
-    setEvaluation(evaluatePosition(chess))
-  }, [fen, chess])
+    if (sfReady) {
+      evaluatePositionSF(chess).then(setEvaluation)
+    } else {
+      setEvaluation(evaluatePosition(chess))
+    }
+  }, [fen, chess, sfReady])
 
   const updateGameStatus = useCallback(() => {
     if (chess.isCheckmate()) {
@@ -66,30 +79,34 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     }
   }, [chess, playerColor, settings.autoSpeak])
 
-  const makeEngineMove = useCallback(() => {
+  const makeEngineMove = useCallback(async () => {
     if (chess.isGameOver() || chess.turn() === playerColor) return
 
     setThinking(true)
-    // Use setTimeout to let the UI update first
-    setTimeout(() => {
-      const move = findBestMove(chess, settings.difficulty)
-      if (move) {
-        chess.move(move)
-        setFen(chess.fen())
-        setLastMove({ from: move.from, to: move.to })
-        setSelectedSquare(null)
 
-        const desc = describeMoveSpoken(move.san, chess.turn() === 'w' ? 'b' : 'w')
-        if (settings.autoSpeak) speech.speak(desc)
+    // Small delay so UI shows "Thinking..."
+    await new Promise(r => setTimeout(r, 100))
 
-        // Show advice after engine move
-        const advice = getPositionAdvice(chess, playerColor)
-        if (advice && settings.showCoaching) setCoaching(advice)
+    const useSF = useStockfish(settings.difficulty)
+    const move = useSF
+      ? await findBestMoveSF(chess, settings.difficulty)
+      : findBestMove(chess, settings.difficulty)
 
-        updateGameStatus()
-      }
-      setThinking(false)
-    }, 100)
+    if (move) {
+      chess.move(move)
+      setFen(chess.fen())
+      setLastMove({ from: move.from, to: move.to })
+      setSelectedSquare(null)
+
+      const desc = describeMoveSpoken(move.san, chess.turn() === 'w' ? 'b' : 'w')
+      if (settings.autoSpeak) speech.speak(desc)
+
+      const advice = getPositionAdvice(chess, playerColor)
+      if (advice && settings.showCoaching) setCoaching(advice)
+
+      updateGameStatus()
+    }
+    setThinking(false)
   }, [chess, playerColor, settings.difficulty, settings.autoSpeak, settings.showCoaching, updateGameStatus])
 
   // After state change, check if engine should move
@@ -109,27 +126,28 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       const move = chess.move({ from, to, promotion })
       if (!move) return false
 
-      // Analyze the player's move
-      const tempChess = new Chess(moveBefore)
       const moveIndex = chess.history().length - 1
-      if (settings.showCoaching) {
-        const analysis = analyzePlayerMove(tempChess, move.san, playerColor)
-        setAnalyses(prev => ({ ...prev, [moveIndex]: analysis }))
-
-        if (analysis.category !== 'good' && settings.autoSpeak) {
-          speech.speak(analysis.explanation)
-        }
-      }
-
       setFen(chess.fen())
       setLastMove({ from, to })
       setSelectedSquare(null)
       updateGameStatus()
+
+      // Analyze async (don't block the move)
+      if (settings.showCoaching) {
+        const tempChess = new Chess(moveBefore)
+        analyzePlayerMove(tempChess, move.san, playerColor, settings.difficulty).then(analysis => {
+          setAnalyses(prev => ({ ...prev, [moveIndex]: analysis }))
+          if (analysis.category !== 'good' && settings.autoSpeak) {
+            speech.speak(analysis.explanation)
+          }
+        })
+      }
+
       return true
     } catch {
       return false
     }
-  }, [chess, isPlayerTurn, playerColor, settings.showCoaching, settings.autoSpeak, updateGameStatus])
+  }, [chess, isPlayerTurn, playerColor, settings.showCoaching, settings.autoSpeak, settings.difficulty, updateGameStatus])
 
   const resetGame = useCallback(() => {
     chess.reset()
