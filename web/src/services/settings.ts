@@ -6,7 +6,7 @@ export type ThemePreference = 'system' | 'light' | 'dark'
 export type FontSizePreference = 'small' | 'medium' | 'large' | 'xlarge'
 export type MotionPreference = 'full' | 'reduced'
 export type SurfacePreference = 'soft' | 'bold'
-export type BoardTheme = 'classic' | 'green' | 'icy'
+export type BoardTheme = 'classic' | 'green' | 'icy' | 'dark' | 'midnight'
 
 export interface Settings {
   theme: ThemePreference

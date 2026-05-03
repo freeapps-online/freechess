@@ -112,6 +112,20 @@
   --board-highlight: rgba(100, 180, 255, 0.4);
   --board-move-hint: rgba(0, 0, 0, 0.12);
 }
+:root[data-board='dark'] {
+  --board-light: #4b4847;
+  --board-dark: #312e2b;
+  --board-highlight: rgba(255, 200, 50, 0.35);
+  --board-move-hint: rgba(255, 255, 255, 0.15);
+  --board-check: rgba(255, 50, 50, 0.45);
+}
+:root[data-board='midnight'] {
+  --board-light: #3d4557;
+  --board-dark: #262c3a;
+  --board-highlight: rgba(130, 170, 255, 0.3);
+  --board-move-hint: rgba(255, 255, 255, 0.12);
+  --board-check: rgba(255, 60, 60, 0.45);
+}
 
 :root[data-surface='bold'] {
   --line: color-mix(in srgb, var(--line-strong) 75%, transparent);
