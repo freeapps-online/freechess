@@ -292,7 +292,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
   const evalPercent = 50 + (evalClamped / 2000) * 50
   const evalDisplay = evaluation > 0 ? `+${(evaluation / 100).toFixed(1)}` : (evaluation / 100).toFixed(1)
 
-  const boardFlipped = settings.boardFlipped || playerColor === 'b'
+  const boardFlipped = settings.boardFlipped !== (playerColor === 'b')
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:gap-6">
@@ -447,7 +447,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
                   ? 'bg-[var(--accent)] text-white font-semibold'
                   : 'bg-[var(--glass)] text-[var(--muted)]'
               }`}
-              onClick={() => { update({ playerColor: 'w' }); resetGame() }}
+              onClick={() => { update({ playerColor: 'w', boardFlipped: false }); resetGame() }}
             >
               White
             </button>
@@ -457,7 +457,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
                   ? 'bg-[var(--accent)] text-white font-semibold'
                   : 'bg-[var(--glass)] text-[var(--muted)]'
               }`}
-              onClick={() => { update({ playerColor: 'b' }); resetGame() }}
+              onClick={() => { update({ playerColor: 'b', boardFlipped: false }); resetGame() }}
             >
               Black
             </button>
