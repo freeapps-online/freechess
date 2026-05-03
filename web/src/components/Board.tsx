@@ -4,9 +4,9 @@ import { Chess, type Square } from 'chess.js'
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1']
 
-const PIECE_CHARS: Record<string, Record<string, string>> = {
-  w: { k: '\u2654', q: '\u2655', r: '\u2656', b: '\u2657', n: '\u2658', p: '\u2659' },
-  b: { k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u265F' },
+// Use filled glyphs (black set) for both colors — we control color via SVG fill/stroke
+const PIECE_CHARS: Record<string, string> = {
+  k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u265F',
 }
 
 interface BoardProps {
@@ -89,7 +89,7 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
       const piece = chess.get(start.sq)
       if (piece) {
         setDragFrom(start.sq)
-        setDragPiece(PIECE_CHARS[piece.color][piece.type])
+        setDragPiece(PIECE_CHARS[piece.type])
         onSquareClick?.(start.sq)
       }
     }
@@ -237,19 +237,27 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
 
                 {/* Piece */}
                 {piece && !(dragFrom === sq && dragPos) && (
-                  <text
-                    x={col * 100 + 50}
-                    y={row * 100 + 72}
-                    textAnchor="middle"
-                    fontSize={72}
-                    fill={piece.color === 'w' ? '#fff' : '#1a1a1a'}
-                    stroke={piece.color === 'w' ? '#333' : 'none'}
-                    strokeWidth={piece.color === 'w' ? 0.8 : 0}
-                    paintOrder="stroke"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {PIECE_CHARS[piece.color][piece.type]}
-                  </text>
+                  piece.color === 'w' ? (
+                    <g style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                      {/* Shadow layer fills internal cutouts */}
+                      <text x={col * 100 + 50} y={row * 100 + 72} textAnchor="middle" fontSize={72}
+                        fill="#333" stroke="#333" strokeWidth={8} strokeLinejoin="round">
+                        {PIECE_CHARS[piece.type]}
+                      </text>
+                      {/* White fill on top */}
+                      <text x={col * 100 + 50} y={row * 100 + 72} textAnchor="middle" fontSize={72}
+                        fill="#fff">
+                        {PIECE_CHARS[piece.type]}
+                      </text>
+                    </g>
+                  ) : (
+                    <text
+                      x={col * 100 + 50} y={row * 100 + 72} textAnchor="middle" fontSize={72}
+                      fill="#1a1a1a"
+                      style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                      {PIECE_CHARS[piece.type]}
+                    </text>
+                  )
                 )}
               </g>
             )
@@ -326,18 +334,20 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         {/* Dragged piece */}
         {!isPreview && dragPos && dragPiece && dragFrom && (() => {
           const dp = chess.get(dragFrom)
-          return (
-            <text
-              x={dragPos.x}
-              y={dragPos.y + 18}
-              textAnchor="middle"
-              fontSize={80}
-              fill={dp?.color === 'w' ? '#fff' : '#1a1a1a'}
-              stroke={dp?.color === 'w' ? '#333' : 'none'}
-              strokeWidth={dp?.color === 'w' ? 0.8 : 0}
-              paintOrder="stroke"
-              style={{ pointerEvents: 'none', opacity: 0.9 }}
-            >
+          const isWhite = dp?.color === 'w'
+          return isWhite ? (
+            <g style={{ pointerEvents: 'none', opacity: 0.9 }}>
+              <text x={dragPos.x} y={dragPos.y + 18} textAnchor="middle" fontSize={80}
+                fill="#333" stroke="#333" strokeWidth={8} strokeLinejoin="round">
+                {dragPiece}
+              </text>
+              <text x={dragPos.x} y={dragPos.y + 18} textAnchor="middle" fontSize={80} fill="#fff">
+                {dragPiece}
+              </text>
+            </g>
+          ) : (
+            <text x={dragPos.x} y={dragPos.y + 18} textAnchor="middle" fontSize={80}
+              fill="#1a1a1a" style={{ pointerEvents: 'none', opacity: 0.9 }}>
               {dragPiece}
             </text>
           )
