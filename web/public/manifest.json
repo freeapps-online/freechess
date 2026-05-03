@@ -1,0 +1,16 @@
+{
+  "name": "FreeChessApp",
+  "short_name": "FreeChess",
+  "description": "Play chess with voice control and AI coaching",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fdfcfa",
+  "theme_color": "#fdfcfa",
+  "orientation": "portrait",
+  "categories": ["games", "education"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
