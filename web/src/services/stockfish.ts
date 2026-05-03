@@ -4,9 +4,16 @@ type PendingCommand = {
   readyToken: string
 }
 
+type QueueEntry = {
+  commands: string[]  // UCI commands to send
+  readyToken: string  // token to look for in output
+  resolve: (lines: string[]) => void
+}
+
 class StockfishService {
   private worker: Worker | null = null
   private pending: PendingCommand | null = null
+  private queue: QueueEntry[] = []
   private _ready = false
   private _loading = false
   private _failed = false
@@ -18,7 +25,6 @@ class StockfishService {
     if (this._ready) return true
     if (this._failed) return false
     if (this._loading) {
-      // Wait for existing load
       return new Promise((resolve) => {
         const check = setInterval(() => {
           if (this._ready || this._failed) {
@@ -50,19 +56,18 @@ class StockfishService {
             clearTimeout(timeout)
             this._ready = true
             this._loading = false
-            // Set initial options
             this.send('isready')
             resolve(true)
             return
           }
 
-          // Route to pending command
           if (this.pending) {
             this.pending.lines.push(line)
             if (line.includes(this.pending.readyToken)) {
               const p = this.pending
               this.pending = null
               p.resolve(p.lines)
+              this.processQueue()
             }
           }
         }
@@ -88,10 +93,20 @@ class StockfishService {
     this.worker?.postMessage(cmd)
   }
 
-  private command(cmd: string, readyToken: string): Promise<string[]> {
-    return new Promise((resolve) => {
-      this.pending = { resolve, lines: [], readyToken }
+  private processQueue() {
+    if (this.pending || this.queue.length === 0) return
+    const entry = this.queue.shift()!
+    this.pending = { resolve: entry.resolve, lines: [], readyToken: entry.readyToken }
+    for (const cmd of entry.commands) {
       this.send(cmd)
+    }
+  }
+
+  // Queue a batch of UCI commands and wait for a response containing readyToken
+  private enqueue(commands: string[], readyToken: string): Promise<string[]> {
+    return new Promise((resolve) => {
+      this.queue.push({ commands, readyToken, resolve })
+      this.processQueue()
     })
   }
 
@@ -103,10 +118,10 @@ class StockfishService {
   async findBestMove(fen: string, depth: number): Promise<string | null> {
     if (!this.worker || !this._ready) return null
 
-    this.send('ucinewgame')
-    this.send(`position fen ${fen}`)
-
-    const lines = await this.command(`go depth ${depth}`, 'bestmove')
+    const lines = await this.enqueue(
+      ['ucinewgame', `position fen ${fen}`, `go depth ${depth}`],
+      'bestmove'
+    )
     const bestLine = lines.find(l => l.startsWith('bestmove'))
     if (!bestLine) return null
 
@@ -117,11 +132,11 @@ class StockfishService {
   async evaluate(fen: string, depth: number): Promise<{ score: number; bestMove: string | null; pv: string }> {
     if (!this.worker || !this._ready) return { score: 0, bestMove: null, pv: '' }
 
-    this.send(`position fen ${fen}`)
+    const lines = await this.enqueue(
+      [`position fen ${fen}`, `go depth ${depth}`],
+      'bestmove'
+    )
 
-    const lines = await this.command(`go depth ${depth}`, 'bestmove')
-
-    // Parse the last info line with score
     let score = 0
     let pv = ''
     for (const line of lines) {

@@ -276,11 +276,11 @@ export async function evaluateMoveSF(
   chessBefore: Chess,
   moveSan: string
 ): Promise<{ evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number }> {
-  // Evaluate position before the move
+  // Evaluate position before the move to get best move + eval
   const beforeResult = await stockfish.evaluate(chessBefore.fen(), 10)
   const evalBefore = chessBefore.turn() === 'w' ? beforeResult.score : -beforeResult.score
 
-  // Best move from Stockfish
+  // Convert Stockfish's best move from UCI to SAN
   const sfBestUci = beforeResult.bestMove
   let bestMoveSan: string | null = null
   if (sfBestUci) {
@@ -291,14 +291,23 @@ export async function evaluateMoveSF(
     const match = legal.find(m => m.from === from && m.to === to && (!promo || m.promotion === promo))
     if (match) bestMoveSan = match.san
   }
-  const bestEval = evalBefore // best move eval ≈ position eval before
 
-  // Make the move and evaluate after
-  const clone = new Chess(chessBefore.fen())
-  clone.move(moveSan)
-  const afterResult = await stockfish.evaluate(clone.fen(), 10)
-  // After the move, it's the opponent's turn, so flip sign
-  const evalAfter = clone.turn() === 'w' ? afterResult.score : -afterResult.score
+  // Evaluate after the player's actual move
+  const cloneActual = new Chess(chessBefore.fen())
+  cloneActual.move(moveSan)
+  const afterResult = await stockfish.evaluate(cloneActual.fen(), 10)
+  const evalAfter = cloneActual.turn() === 'w' ? afterResult.score : -afterResult.score
+
+  // Evaluate after the best move (for accurate diff)
+  let bestEval = evalBefore
+  if (bestMoveSan && bestMoveSan !== moveSan) {
+    const cloneBest = new Chess(chessBefore.fen())
+    cloneBest.move(bestMoveSan)
+    const bestResult = await stockfish.evaluate(cloneBest.fen(), 10)
+    bestEval = cloneBest.turn() === 'w' ? bestResult.score : -bestResult.score
+  } else {
+    bestEval = evalAfter // player played the best move
+  }
 
   return { evalBefore, evalAfter, bestMove: bestMoveSan, bestEval }
 }

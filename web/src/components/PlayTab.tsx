@@ -50,14 +50,17 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     }
   }, [settings.difficulty])
 
-  // Evaluate position whenever it changes
+  // Evaluate position whenever it changes (skip while engine is thinking)
   useEffect(() => {
+    if (thinking) return
     if (sfReady) {
-      evaluatePositionSF(chess).then(setEvaluation)
+      let cancelled = false
+      evaluatePositionSF(chess).then(v => { if (!cancelled) setEvaluation(v) })
+      return () => { cancelled = true }
     } else {
       setEvaluation(evaluatePosition(chess))
     }
-  }, [fen, chess, sfReady])
+  }, [fen, chess, sfReady, thinking])
 
   const updateGameStatus = useCallback(() => {
     if (chess.isCheckmate()) {
