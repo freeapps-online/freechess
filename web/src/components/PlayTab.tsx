@@ -116,14 +116,8 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         const analysis = analyzePlayerMove(tempChess, move.san, playerColor)
         setAnalyses(prev => ({ ...prev, [moveIndex]: analysis }))
 
-        if (analysis.category === 'blunder' || analysis.category === 'mistake') {
-          setCoaching(analysis.explanation)
-          if (settings.autoSpeak) speech.speak(analysis.explanation)
-        } else if (analysis.category === 'brilliant' || analysis.category === 'great') {
-          setCoaching(analysis.explanation)
-          if (settings.autoSpeak) speech.speak(analysis.explanation)
-        } else {
-          setCoaching(null)
+        if (analysis.category !== 'good' && settings.autoSpeak) {
+          speech.speak(analysis.explanation)
         }
       }
 
@@ -434,16 +428,9 @@ export function PlayTab({ settings, update }: PlayTabProps) {
           </div>
         </div>
 
-        {/* Coaching panel */}
-        {settings.showCoaching && coaching && (
-          <div className={`rounded-[1rem] border p-3 text-sm ${
-            coaching.includes('blunder') || coaching.includes('mistake') || coaching.includes('lost') || coaching.includes('Checkmate.')
-              ? 'border-[var(--error)]/30 bg-[var(--error)]/8 text-[var(--error)]'
-              : coaching.includes('Brilliant') || coaching.includes('Excellent') || coaching.includes('win')
-                ? 'border-[var(--success)]/30 bg-[var(--success)]/8 text-[var(--success)]'
-                : 'border-[var(--line)] bg-[var(--glass-soft)] text-[var(--ink)]'
-          }`}>
-            <div className="mb-1 text-[0.6rem] font-bold uppercase tracking-[0.15em] opacity-70">Coach</div>
+        {/* Status message (voice feedback, game advice) */}
+        {coaching && gameStatus === 'playing' && (
+          <div className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass-soft)] px-3 py-2 text-sm text-[var(--ink)]">
             {coaching}
           </div>
         )}
