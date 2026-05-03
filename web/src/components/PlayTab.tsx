@@ -30,6 +30,12 @@ export function PlayTab({ settings, update }: PlayTabProps) {
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null)
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [analyses, setAnalyses] = useState<Record<number, MoveAnalysis>>({})
+  const [alternativePreview, setAlternativePreview] = useState<{
+    moveIndex: number
+    fen: string
+    bestFrom: Square
+    bestTo: Square
+  } | null>(null)
   const [coaching, setCoaching] = useState<string | null>(null)
   const [gameStatus, setGameStatus] = useState<GameStatus>('playing')
   const [thinking, setThinking] = useState(false)
@@ -133,6 +139,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       setFen(chess.fen())
       setLastMove({ from, to })
       setSelectedSquare(null)
+      setAlternativePreview(null)
       updateGameStatus()
 
       // Analyze async (don't block the move)
@@ -158,6 +165,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     setLastMove(null)
     setSelectedSquare(null)
     setAnalyses({})
+    setAlternativePreview(null)
     setCoaching(null)
     setGameStatus('playing')
     setEvaluation(0)
@@ -325,8 +333,10 @@ export function PlayTab({ settings, update }: PlayTabProps) {
               playerColor={playerColor}
               onMove={handleMove}
               lastMove={lastMove}
-              selectedSquare={selectedSquare}
-              onSquareClick={setSelectedSquare}
+              selectedSquare={alternativePreview ? null : selectedSquare}
+              onSquareClick={(sq) => { setAlternativePreview(null); setSelectedSquare(sq) }}
+              previewFen={alternativePreview?.fen ?? null}
+              previewArrow={alternativePreview ? { from: alternativePreview.bestFrom, to: alternativePreview.bestTo } : null}
             />
           </div>
         </div>
@@ -477,7 +487,36 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         {/* Move list */}
         <div className="rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3">
           <div className="mb-2 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Moves</div>
-          <MoveList history={history} analyses={analyses} />
+          <MoveList
+            history={history}
+            analyses={analyses}
+            activeAlternative={alternativePreview?.moveIndex ?? null}
+            onShowAlternative={(moveIndex, analysis) => {
+              if (alternativePreview?.moveIndex === moveIndex) {
+                setAlternativePreview(null)
+                return
+              }
+              if (!analysis.bestMove || analysis.bestMove === analysis.move) return
+              // Replay game to the position before this move
+              const replay = new Chess()
+              const moves = chess.history({ verbose: true })
+              for (let i = 0; i < moveIndex; i++) {
+                replay.move(moves[i])
+              }
+              // Find the best move in that position
+              const legal = replay.moves({ verbose: true })
+              const best = legal.find(m => m.san === analysis.bestMove)
+              if (best) {
+                replay.move(best)
+                setAlternativePreview({
+                  moveIndex,
+                  fen: replay.fen(),
+                  bestFrom: best.from,
+                  bestTo: best.to,
+                })
+              }
+            }}
+          />
         </div>
 
         {/* Voice instructions */}

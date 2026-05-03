@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import type { Chess, Square } from 'chess.js'
+import { Chess, type Square } from 'chess.js'
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1']
@@ -17,18 +17,22 @@ interface BoardProps {
   lastMove?: { from: Square; to: Square } | null
   selectedSquare?: Square | null
   onSquareClick?: (sq: Square | null) => void
+  previewFen?: string | null
+  previewArrow?: { from: Square; to: Square } | null
 }
 
-export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedSquare, onSquareClick }: BoardProps) {
+export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedSquare, onSquareClick, previewFen, previewArrow }: BoardProps) {
   const [dragFrom, setDragFrom] = useState<Square | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const [dragPiece, setDragPiece] = useState<string | null>(null)
 
-  const board = chess.board()
+  const isPreview = !!previewFen
+  const displayChess = isPreview ? new Chess(previewFen!) : chess
+  const board = displayChess.board()
   const ranks = flipped ? [...RANKS].reverse() : RANKS
   const files = flipped ? [...FILES].reverse() : FILES
 
-  const isInCheck = chess.isCheck()
+  const isInCheck = !isPreview && chess.isCheck()
   const kingInCheck = isInCheck ? findKing(chess, chess.turn()) : null
 
   // Get legal moves for selected square
@@ -275,8 +279,45 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
           </text>
         ))}
 
+        {/* Preview arrow for best move */}
+        {isPreview && previewArrow && (() => {
+          const fromCol = files.indexOf(previewArrow.from[0])
+          const fromRow = ranks.indexOf(previewArrow.from[1])
+          const toCol = files.indexOf(previewArrow.to[0])
+          const toRow = ranks.indexOf(previewArrow.to[1])
+          if (fromCol < 0 || fromRow < 0 || toCol < 0 || toRow < 0) return null
+          const x1 = fromCol * 100 + 50
+          const y1 = fromRow * 100 + 50
+          const x2 = toCol * 100 + 50
+          const y2 = toRow * 100 + 50
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="rgba(85, 160, 255, 0.85)" />
+                </marker>
+              </defs>
+              <line
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="rgba(85, 160, 255, 0.7)" strokeWidth={14} strokeLinecap="round"
+                markerEnd="url(#arrowhead)"
+              />
+            </g>
+          )
+        })()}
+
+        {/* Preview overlay label */}
+        {isPreview && (
+          <rect x={0} y={0} width={800} height={32} fill="rgba(85, 160, 255, 0.85)" rx={0} style={{ pointerEvents: 'none' }} />
+        )}
+        {isPreview && (
+          <text x={400} y={22} textAnchor="middle" fontSize={14} fontWeight={700} fill="white" style={{ pointerEvents: 'none' }}>
+            Best alternative
+          </text>
+        )}
+
         {/* Dragged piece */}
-        {dragPos && dragPiece && (
+        {!isPreview && dragPos && dragPiece && (
           <text
             x={dragPos.x}
             y={dragPos.y + 18}

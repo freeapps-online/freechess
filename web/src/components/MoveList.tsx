@@ -4,6 +4,8 @@ import type { MoveAnalysis } from '../types.ts'
 interface MoveListProps {
   history: string[]
   analyses: Record<number, MoveAnalysis>
+  onShowAlternative?: (moveIndex: number, analysis: MoveAnalysis) => void
+  activeAlternative?: number | null
 }
 
 const CATEGORY_COLORS: Record<MoveAnalysis['category'], string> = {
@@ -42,7 +44,7 @@ const CATEGORY_LABELS: Record<MoveAnalysis['category'], string> = {
   blunder: 'Blunder',
 }
 
-export function MoveList({ history, analyses }: MoveListProps) {
+export function MoveList({ history, analyses, onShowAlternative, activeAlternative }: MoveListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,7 +59,6 @@ export function MoveList({ history, analyses }: MoveListProps) {
     )
   }
 
-  // Build entries: each move row, optionally followed by an analysis row
   const entries: React.ReactNode[] = []
 
   for (let i = 0; i < history.length; i += 2) {
@@ -67,7 +68,6 @@ export function MoveList({ history, analyses }: MoveListProps) {
     const whiteAnalysis = analyses[i]
     const blackAnalysis = analyses[i + 1]
 
-    // Move row
     entries.push(
       <div key={`move-${moveNum}`} className="flex items-baseline gap-1.5 py-0.5">
         <span className="w-6 text-right text-[var(--muted)] text-xs shrink-0 font-mono">{moveNum}.</span>
@@ -76,17 +76,25 @@ export function MoveList({ history, analyses }: MoveListProps) {
       </div>
     )
 
-    // Analysis explanation for white's move
     if (whiteAnalysis && whiteAnalysis.category !== 'good') {
       entries.push(
-        <AnalysisRow key={`analysis-w-${moveNum}`} analysis={whiteAnalysis} moveNum={moveNum} color="White" />
+        <AnalysisRow
+          key={`analysis-w-${moveNum}`}
+          analysis={whiteAnalysis}
+          active={activeAlternative === i}
+          onClick={() => onShowAlternative?.(i, whiteAnalysis)}
+        />
       )
     }
 
-    // Analysis explanation for black's move
     if (blackAnalysis && blackAnalysis.category !== 'good') {
       entries.push(
-        <AnalysisRow key={`analysis-b-${moveNum}`} analysis={blackAnalysis} moveNum={moveNum} color="Black" />
+        <AnalysisRow
+          key={`analysis-b-${moveNum}`}
+          analysis={blackAnalysis}
+          active={activeAlternative === (i + 1)}
+          onClick={() => onShowAlternative?.(i + 1, blackAnalysis)}
+        />
       )
     }
   }
@@ -110,18 +118,29 @@ function MoveCell({ move, analysis }: { move: string; analysis?: MoveAnalysis })
   )
 }
 
-function AnalysisRow({ analysis, moveNum: _moveNum, color: _color }: { analysis: MoveAnalysis; moveNum: number; color: string }) {
+function AnalysisRow({ analysis, active, onClick }: { analysis: MoveAnalysis; active: boolean; onClick: () => void }) {
   const bg = CATEGORY_BG[analysis.category]
   const textColor = CATEGORY_COLORS[analysis.category]
   const label = CATEGORY_LABELS[analysis.category]
+  const hasBest = analysis.bestMove && analysis.bestMove !== analysis.move
 
   return (
-    <div className={`ml-7.5 rounded-[0.5rem] border px-2.5 py-1.5 text-xs ${bg || 'border-[var(--line)]'}`}>
+    <button
+      className={`ml-7.5 w-[calc(100%-1.875rem)] text-left rounded-[0.5rem] border px-2.5 py-1.5 text-xs transition-all ${bg || 'border-[var(--line)]'} ${
+        active ? 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--paper)]' : ''
+      } ${hasBest ? 'cursor-pointer hover:brightness-110' : ''}`}
+      onClick={hasBest ? onClick : undefined}
+    >
       <span className={`font-bold ${textColor}`}>{label}: </span>
       <span className="text-[var(--ink)]/80">{analysis.explanation}</span>
-      {analysis.bestMove && analysis.bestMove !== analysis.move && (
-        <span className="text-[var(--muted)]"> Best was <strong className="text-[var(--ink)]">{analysis.bestMove}</strong>.</span>
+      {hasBest && (
+        <span className="text-[var(--muted)]">
+          {' '}Best was <strong className="text-[var(--ink)]">{analysis.bestMove}</strong>.
+          <span className={`ml-1 ${active ? 'text-[var(--accent)]' : 'text-[var(--accent)]/60'}`}>
+            {active ? '(showing on board)' : 'Tap to see'}
+          </span>
+        </span>
       )}
-    </div>
+    </button>
   )
 }
