@@ -99,6 +99,20 @@
   --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.4);
 }
 
+/* Board themes */
+:root[data-board='green'] {
+  --board-light: #eeeed2;
+  --board-dark: #769656;
+  --board-highlight: rgba(255, 255, 50, 0.45);
+  --board-move-hint: rgba(0, 0, 0, 0.14);
+}
+:root[data-board='icy'] {
+  --board-light: #dee3e6;
+  --board-dark: #8ca2ad;
+  --board-highlight: rgba(100, 180, 255, 0.4);
+  --board-move-hint: rgba(0, 0, 0, 0.12);
+}
+
 :root[data-surface='bold'] {
   --line: color-mix(in srgb, var(--line-strong) 75%, transparent);
   --glass: color-mix(in srgb, var(--glass) 85%, var(--paper));

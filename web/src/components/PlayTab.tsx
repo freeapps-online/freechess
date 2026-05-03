@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Chess, type Square } from 'chess.js'
 import { Board } from './Board.tsx'
 import { MoveList } from './MoveList.tsx'
-import { findBestMove, evaluatePosition, findBestMoveSF, evaluatePositionSF, useStockfish } from '../services/engine.ts'
+import { findBestMove, evaluatePosition, findBestMoveSF, evaluatePositionSF, shouldUseStockfish } from '../services/engine.ts'
 import { stockfish } from '../services/stockfish.ts'
 import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../services/analysis.ts'
 import { parseVoiceMove } from '../services/voiceMoves.ts'
@@ -96,7 +96,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     // Small delay so UI shows "Thinking..."
     await new Promise(r => setTimeout(r, 100))
 
-    const useSF = useStockfish(settings.difficulty)
+    const useSF = shouldUseStockfish(settings.difficulty)
     const move = useSF
       ? await findBestMoveSF(chess, settings.difficulty)
       : findBestMove(chess, settings.difficulty)
@@ -347,6 +347,11 @@ export function PlayTab({ settings, update }: PlayTabProps) {
             {playerColor === 'w' ? '\u2654' : '\u265A'}
           </div>
           <span className="text-sm font-semibold text-[var(--ink)]">You</span>
+          {isPlayerTurn && !thinking && (
+            <span className="ml-1 rounded-full bg-[var(--success)]/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--success)]">
+              Your turn
+            </span>
+          )}
 
           {/* Mic status */}
           {settings.microphone && (

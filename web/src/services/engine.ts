@@ -12,7 +12,7 @@ const SF_CONFIG: Record<Difficulty, { skill: number; depth: number }> = {
 }
 
 // Use Stockfish for difficulty 3+ (async), minimax for 1-2 (sync)
-export function useStockfish(difficulty: Difficulty): boolean {
+export function shouldUseStockfish(difficulty: Difficulty): boolean {
   return difficulty >= 3 && stockfish.ready
 }
 
@@ -299,17 +299,19 @@ export async function evaluateMoveSF(
   const evalAfter = cloneActual.turn() === 'w' ? afterResult.score : -afterResult.score
 
   // Evaluate after the best move (for accurate diff)
-  let bestEval = evalBefore
   if (bestMoveSan && bestMoveSan !== moveSan) {
     const cloneBest = new Chess(chessBefore.fen())
     cloneBest.move(bestMoveSan)
     const bestResult = await stockfish.evaluate(cloneBest.fen(), 10)
-    bestEval = cloneBest.turn() === 'w' ? bestResult.score : -bestResult.score
-  } else {
-    bestEval = evalAfter // player played the best move
+    return {
+      evalBefore,
+      evalAfter,
+      bestMove: bestMoveSan,
+      bestEval: cloneBest.turn() === 'w' ? bestResult.score : -bestResult.score,
+    }
   }
 
-  return { evalBefore, evalAfter, bestMove: bestMoveSan, bestEval }
+  return { evalBefore, evalAfter, bestMove: bestMoveSan, bestEval: evalAfter }
 }
 
 // --- Minimax-only functions (sync, for difficulty 1-2) ---
@@ -340,4 +342,3 @@ export function evaluateMove(chess: Chess, moveSan: string): { evalBefore: numbe
 
   return { evalBefore, evalAfter, bestMove, bestEval }
 }
-

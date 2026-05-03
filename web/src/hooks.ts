@@ -40,6 +40,7 @@ export function useApplySettings(settings: Settings) {
     applyTheme()
     root.dataset.motion = settings.motion
     root.dataset.surface = settings.surface
+    root.dataset.board = settings.boardTheme
 
     const labelScale = { small: '13px', medium: '16px', large: '19px', xlarge: '22px' } as const
     const contentScale = { small: '1', medium: '1.15', large: '1.35', xlarge: '1.55' } as const

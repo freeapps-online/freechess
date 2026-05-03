@@ -1,10 +1,10 @@
 import { Chess } from 'chess.js'
 import type { MoveAnalysis } from '../types.ts'
-import { evaluateMove, evaluateMoveSF, useStockfish } from './engine.ts'
+import { evaluateMove, evaluateMoveSF, shouldUseStockfish } from './engine.ts'
 import type { Difficulty } from '../types.ts'
 
 export async function analyzePlayerMove(chess: Chess, moveSan: string, playerColor: 'w' | 'b', difficulty: Difficulty = 2): Promise<MoveAnalysis> {
-  const useSF = useStockfish(difficulty)
+  const useSF = shouldUseStockfish(difficulty)
   const { evalAfter, bestMove, bestEval } = useSF
     ? await evaluateMoveSF(chess, moveSan)
     : evaluateMove(chess, moveSan)

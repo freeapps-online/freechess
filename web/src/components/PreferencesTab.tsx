@@ -1,4 +1,4 @@
-import type { Settings, ThemePreference, FontSizePreference, MotionPreference, SurfacePreference } from '../services/settings.ts'
+import type { Settings, ThemePreference, FontSizePreference, MotionPreference, SurfacePreference, BoardTheme } from '../services/settings.ts'
 
 interface PreferencesTabProps {
   settings: Settings
@@ -10,6 +10,7 @@ export function PreferencesTab({ settings, update }: PreferencesTabProps) {
     <div className="space-y-6">
       <Section title="Appearance">
         <SegmentRow label="Theme" options={['system', 'light', 'dark'] as ThemePreference[]} value={settings.theme} onChange={(theme) => update({ theme })} />
+        <SegmentRow label="Board" options={['classic', 'green', 'icy'] as BoardTheme[]} labels={['Brown', 'Green', 'Ice']} value={settings.boardTheme} onChange={(boardTheme) => update({ boardTheme })} />
         <SegmentRow label="Surface" options={['soft', 'bold'] as SurfacePreference[]} value={settings.surface} onChange={(surface) => update({ surface })} />
         <SegmentRow label="Motion" options={['full', 'reduced'] as MotionPreference[]} value={settings.motion} onChange={(motion) => update({ motion })} />
       </Section>

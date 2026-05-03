@@ -6,6 +6,7 @@ export type ThemePreference = 'system' | 'light' | 'dark'
 export type FontSizePreference = 'small' | 'medium' | 'large' | 'xlarge'
 export type MotionPreference = 'full' | 'reduced'
 export type SurfacePreference = 'soft' | 'bold'
+export type BoardTheme = 'classic' | 'green' | 'icy'
 
 export interface Settings {
   theme: ThemePreference
@@ -13,6 +14,7 @@ export interface Settings {
   contentSize: FontSizePreference
   motion: MotionPreference
   surface: SurfacePreference
+  boardTheme: BoardTheme
   audio: boolean
   microphone: boolean
   difficulty: Difficulty
@@ -29,6 +31,7 @@ const defaults: Settings = {
   contentSize: 'medium',
   motion: 'full',
   surface: 'soft',
+  boardTheme: 'classic',
   audio: true,
   microphone: false,
   difficulty: 2,

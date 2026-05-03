@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { Chess, type Square } from 'chess.js'
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -36,9 +36,12 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
   const kingInCheck = isInCheck ? findKing(chess, chess.turn()) : null
 
   // Get legal moves for selected square
-  const legalTargets = selectedSquare
-    ? chess.moves({ square: selectedSquare, verbose: true }).map(m => m.to)
-    : []
+  const legalTargets = useMemo(
+    () => (selectedSquare
+      ? chess.moves({ square: selectedSquare, verbose: true }).map((move) => move.to)
+      : []),
+    [chess, selectedSquare],
+  )
 
   const handleSquareClick = useCallback((sq: Square) => {
     if (selectedSquare) {
@@ -239,6 +242,10 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
                     y={row * 100 + 72}
                     textAnchor="middle"
                     fontSize={72}
+                    fill={piece.color === 'w' ? '#fff' : '#1a1a1a'}
+                    stroke={piece.color === 'w' ? '#333' : 'none'}
+                    strokeWidth={piece.color === 'w' ? 0.8 : 0}
+                    paintOrder="stroke"
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
                     {PIECE_CHARS[piece.color][piece.type]}
@@ -317,17 +324,24 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         )}
 
         {/* Dragged piece */}
-        {!isPreview && dragPos && dragPiece && (
-          <text
-            x={dragPos.x}
-            y={dragPos.y + 18}
-            textAnchor="middle"
-            fontSize={80}
-            style={{ pointerEvents: 'none', opacity: 0.9 }}
-          >
-            {dragPiece}
-          </text>
-        )}
+        {!isPreview && dragPos && dragPiece && dragFrom && (() => {
+          const dp = chess.get(dragFrom)
+          return (
+            <text
+              x={dragPos.x}
+              y={dragPos.y + 18}
+              textAnchor="middle"
+              fontSize={80}
+              fill={dp?.color === 'w' ? '#fff' : '#1a1a1a'}
+              stroke={dp?.color === 'w' ? '#333' : 'none'}
+              strokeWidth={dp?.color === 'w' ? 0.8 : 0}
+              paintOrder="stroke"
+              style={{ pointerEvents: 'none', opacity: 0.9 }}
+            >
+              {dragPiece}
+            </text>
+          )
+        })()}
       </svg>
     </div>
   )
