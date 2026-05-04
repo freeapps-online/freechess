@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LayoutGrid, Settings2 } from 'lucide-react'
 import { useApplySettings, useSettings } from './hooks.ts'
+import { useLeaderboard } from './hooks/useLeaderboard.ts'
 import { PlayTab } from './components/PlayTab.tsx'
 import { PreferencesTab } from './components/PreferencesTab.tsx'
+import { Leaderboard } from './components/Leaderboard.tsx'
 import type { Mode } from './types.ts'
 
 const PATH_TO_MODE: Record<string, Mode> = {
@@ -24,6 +26,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>(getModeFromPath)
   const { settings, update } = useSettings()
   useApplySettings(settings)
+  const { topScores, recentScores, loading } = useLeaderboard("chess")
 
   const navigate = useCallback((m: Mode) => {
     setMode(m)
@@ -74,6 +77,10 @@ export default function App() {
                   <div className="flex justify-between"><span>Voice</span><span>"knight f3"</span></div>
                   <div className="flex justify-between"><span>Undo</span><span>Take back move</span></div>
                   <div className="flex justify-between"><span>Coach</span><span>Auto-analysis</span></div>
+                </div>
+                <div className="border-t" style={{ borderColor: "var(--line)" }}>
+                  <div className="text-xs font-semibold px-4 pt-3" style={{ color: "var(--muted)" }}>Leaderboard</div>
+                  <Leaderboard topScores={topScores} recentScores={recentScores} loading={loading} />
                 </div>
               </div>
             )}
