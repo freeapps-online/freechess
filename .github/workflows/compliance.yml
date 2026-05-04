@@ -57,7 +57,7 @@ jobs:
         run: grep -r "freeappstore.online" web/src/ | grep -q .
 
       - name: Dark mode
-        run: grep -rE "prefers-color-scheme|data-theme" web/src/ | grep -q .
+        run: grep -rE "prefers-color-scheme|data-theme|color-scheme" web/src/ | grep -q .
 
       - name: pnpm workspace
         run: |
