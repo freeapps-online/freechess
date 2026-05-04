@@ -30,6 +30,12 @@ export function PreferencesTab({ settings, update }: PreferencesTabProps) {
         <ToggleRow label="Show coaching" description="Display analysis of your moves" value={settings.showCoaching} onChange={(showCoaching) => update({ showCoaching })} />
         <ToggleRow label="Evaluation bar" description="Show position evaluation on the board" value={settings.showEvalBar} onChange={(showEvalBar) => update({ showEvalBar })} />
       </Section>
+
+      <div className="pt-4 text-center">
+        <a href="https://freeappstore.online" target="_blank" rel="noopener" className="text-[0.7rem] font-medium text-[var(--muted)] hover:text-[var(--ink)] transition-colors">
+          Part of FreeAppStore — free forever
+        </a>
+      </div>
     </div>
   )
 }
