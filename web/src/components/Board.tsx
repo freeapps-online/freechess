@@ -5,8 +5,9 @@ const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1']
 
 // Use filled glyphs (black set) for both colors — we control color via SVG fill/stroke
+// Use filled glyphs + VS15 (\uFE0E) to force text rendering (prevents emoji on macOS/iOS)
 const PIECE_CHARS: Record<string, string> = {
-  k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u265F',
+  k: '\u265A\uFE0E', q: '\u265B\uFE0E', r: '\u265C\uFE0E', b: '\u265D\uFE0E', n: '\u265E\uFE0E', p: '\u265F\uFE0E',
 }
 
 interface BoardProps {
