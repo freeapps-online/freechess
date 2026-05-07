@@ -136,13 +136,15 @@
 
 
 html {
-  min-height: 100%;
+  height: 100%;
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
+  overflow: hidden;
 }
 
 body {
-  min-height: 100dvh;
+  height: 100svh;
+  overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
   background:
@@ -185,10 +187,11 @@ body::after {
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100%;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   isolation: isolate;
+  overflow: hidden;
 }
 
 input, textarea, [contenteditable] {

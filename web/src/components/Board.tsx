@@ -140,7 +140,7 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
   }, [dragFrom, chess, files, ranks, onMove, onSquareClick])
 
   return (
-    <div className="relative w-full aspect-square select-none">
+    <div className="chess-board-wrap relative aspect-square select-none w-full max-h-[calc(100svh-11rem)] lg:max-h-none">
       <svg
         className="chess-board w-full h-full rounded-[0.5rem] shadow-[var(--shadow-soft)] overflow-hidden"
         viewBox="0 0 800 800"

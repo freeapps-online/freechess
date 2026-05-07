@@ -295,15 +295,15 @@ export function PlayTab({ settings, update }: PlayTabProps) {
   const boardFlipped = settings.boardFlipped !== (playerColor === 'b')
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:gap-6">
+    <div className="flex flex-col gap-1 lg:flex-row lg:gap-6 h-full overflow-hidden">
       {/* Board area */}
-      <div className="flex flex-col gap-2 lg:w-[min(60%,560px)]">
+      <div className="flex flex-col gap-1 lg:gap-2 lg:w-[min(60%,560px)] min-h-0">
         {/* Top bar: opponent info */}
         <div className="flex items-center gap-2 px-1">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--glass)] text-base">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--glass)] text-sm lg:h-7 lg:w-7 lg:text-base">
             {playerColor === 'w' ? '\u265A' : '\u2654'}
           </div>
-          <span className="text-sm font-semibold text-[var(--ink)]">
+          <span className="text-xs font-semibold text-[var(--ink)] lg:text-sm">
             Engine ({DIFFICULTY_LABELS[settings.difficulty]})
           </span>
           {thinking && (
@@ -314,7 +314,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         {/* Eval bar + Board */}
         <div className="flex gap-1.5">
           {settings.showEvalBar && (
-            <div className="w-4 shrink-0 rounded-full overflow-hidden bg-[var(--board-dark)] relative">
+            <div className="w-3 lg:w-4 shrink-0 rounded-full overflow-hidden bg-[var(--board-dark)] relative">
               <div
                 className="absolute bottom-0 left-0 right-0 bg-[var(--board-light)] transition-all duration-500"
                 style={{ height: `${evalPercent}%` }}
@@ -326,7 +326,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
               </div>
             </div>
           )}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Board
               chess={chess}
               flipped={boardFlipped}
@@ -343,10 +343,10 @@ export function PlayTab({ settings, update }: PlayTabProps) {
 
         {/* Bottom bar: player info */}
         <div className="flex items-center gap-2 px-1">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/20 text-base">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)]/20 text-sm lg:h-7 lg:w-7 lg:text-base">
             {playerColor === 'w' ? '\u2654' : '\u265A'}
           </div>
-          <span className="text-sm font-semibold text-[var(--ink)]">You</span>
+          <span className="text-xs font-semibold text-[var(--ink)] lg:text-sm">You</span>
           {isPlayerTurn && !thinking && (
             <span className="ml-1 rounded-full bg-[var(--success)]/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--success)]">
               Your turn
@@ -373,7 +373,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       </div>
 
       {/* Sidebar: moves, coaching, controls */}
-      <div className="flex flex-col gap-3 lg:flex-1 lg:min-w-[240px]">
+      <div className="flex flex-col gap-2 lg:gap-3 flex-1 lg:min-w-[240px] min-h-0 overflow-y-auto">
         {/* Game controls */}
         <div className="flex flex-wrap gap-2">
           <button

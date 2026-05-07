@@ -40,17 +40,17 @@ export default function App() {
   }, [])
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden">
+    <div className="relative h-[100svh] overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-18%] top-[-8%] h-72 w-72 rounded-full bg-[var(--accent-soft)]/35 blur-3xl lg:h-[34rem] lg:w-[34rem]" />
         <div className="absolute right-[-14%] top-[18%] h-72 w-72 rounded-full bg-[var(--sky-soft)]/30 blur-3xl lg:top-[-2%] lg:h-[28rem] lg:w-[28rem]" />
         <div className="absolute bottom-[-10%] left-[10%] h-80 w-80 rounded-full bg-[var(--mint-soft)]/25 blur-3xl lg:left-[45%] lg:h-[26rem] lg:w-[26rem]" />
       </div>
 
-      <div className="relative mx-auto max-w-[1540px] px-1 pt-1 sm:px-4 lg:px-8 lg:py-8 min-h-[100dvh] pb-14">
-        <div className="lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-7">
+      <div className="relative mx-auto max-w-[1540px] px-1 pt-1 sm:px-4 lg:px-8 lg:py-8 h-full pb-14 lg:pb-0">
+        <div className="flex flex-col h-full lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-7">
           {/* Desktop sidebar */}
-          <aside className="hidden lg:flex lg:min-h-[calc(100dvh-4rem)] lg:flex-col lg:gap-5 lg:rounded-[2rem] lg:border lg:border-[var(--line)] lg:bg-[var(--glass-strong)] lg:p-6 lg:shadow-[var(--shadow-soft)] lg:backdrop-blur-xl">
+          <aside className="hidden lg:flex lg:max-h-[calc(100svh-4rem)] lg:flex-col lg:gap-5 lg:rounded-[2rem] lg:border lg:border-[var(--line)] lg:bg-[var(--glass-strong)] lg:p-6 lg:shadow-[var(--shadow-soft)] lg:backdrop-blur-xl lg:overflow-y-auto">
             <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line-strong)] bg-[var(--glass)] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-[var(--accent-deep)]">
               <span className="text-base">&#9816;</span>
               FreeChessApp.online
@@ -87,7 +87,7 @@ export default function App() {
           </aside>
 
           {/* Mobile header */}
-          <header className="mb-2 flex items-center gap-2 lg:hidden">
+          <header className="mb-1 flex items-center gap-2 lg:hidden shrink-0">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line-strong)] bg-[var(--glass)] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--accent-deep)]">
               <span className="text-sm">&#9816;</span>
               FreeChess
@@ -95,7 +95,7 @@ export default function App() {
           </header>
 
           {/* Content */}
-          <main className="min-w-0">
+          <main className="min-w-0 min-h-0 overflow-hidden flex-1">
             {mode === 'play' && <PlayTab settings={settings} update={update} />}
             {mode === 'preferences' && (
               <section className="rounded-[1.25rem] bg-[var(--panel-quiet)] p-3 sm:p-4 lg:rounded-[1.5rem] lg:p-5">
