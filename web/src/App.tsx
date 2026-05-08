@@ -44,7 +44,7 @@ export default function App() {
           title="Chess"
           actions={
             <button
-              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold transition ${
+              className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
                 mode === 'preferences'
                   ? 'bg-[var(--ink)] text-[var(--paper)]'
                   : 'text-[var(--muted)] hover:text-[var(--ink)]'
