@@ -295,9 +295,9 @@ export function PlayTab({ settings, update }: PlayTabProps) {
   const boardFlipped = settings.boardFlipped !== (playerColor === 'b')
 
   return (
-    <div className="flex flex-col gap-1 lg:flex-row lg:gap-6 h-full overflow-hidden">
+    <div className="flex flex-col gap-1 landscape:flex-row landscape:gap-3 lg:flex-row lg:gap-6 h-full overflow-hidden">
       {/* Board area */}
-      <div className="flex flex-col gap-1 lg:gap-2 lg:w-[min(60%,560px)] min-h-0">
+      <div className="flex flex-col gap-1 lg:gap-2 landscape:w-[min(55%,560px)] lg:w-[min(60%,560px)] min-h-0 shrink-0">
         {/* Top bar: opponent info */}
         <div className="flex items-center gap-2 px-1">
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--glass)] text-sm lg:h-7 lg:w-7 lg:text-base">
@@ -373,9 +373,9 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       </div>
 
       {/* Sidebar: moves, coaching, controls */}
-      <div className="flex flex-col gap-2 lg:gap-3 flex-1 lg:min-w-[240px] min-h-0 overflow-y-auto">
+      <div className="flex flex-col gap-2 lg:gap-3 flex-1 lg:min-w-[240px] min-h-0 min-w-0 overflow-y-auto">
         {/* Game controls */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 landscape:gap-1">
           <button
             className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
             onClick={resetGame}
