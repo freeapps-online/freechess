@@ -7,6 +7,7 @@ import { stockfish } from '../services/stockfish.ts'
 import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../services/analysis.ts'
 import { parseVoiceMove } from '../services/voiceMoves.ts'
 import { speech } from '../services/speech.ts'
+import { useSound } from '@freegamestore/games'
 import { useSpeech } from '../hooks.ts'
 import type { Settings } from '../services/settings.ts'
 import type { Difficulty, MoveAnalysis, GameStatus } from '../types.ts'
@@ -25,6 +26,7 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 }
 
 export function PlayTab({ settings, update }: PlayTabProps) {
+  const { muted } = useSound()
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState(chess.fen())
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null)
@@ -74,19 +76,19 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       setGameStatus('checkmate')
       const msg = winner === playerColor ? 'Checkmate! You win!' : "Checkmate. You lost."
       setCoaching(msg)
-      if (settings.autoSpeak) speech.speak(msg)
+      if (!muted) speech.speak(msg)
     } else if (chess.isStalemate()) {
       setGameStatus('stalemate')
       const msg = "Stalemate! It's a draw."
       setCoaching(msg)
-      if (settings.autoSpeak) speech.speak(msg)
+      if (!muted) speech.speak(msg)
     } else if (chess.isDraw()) {
       setGameStatus('draw')
       const msg = "Draw!"
       setCoaching(msg)
-      if (settings.autoSpeak) speech.speak(msg)
+      if (!muted) speech.speak(msg)
     }
-  }, [chess, playerColor, settings.autoSpeak])
+  }, [chess, playerColor, !muted])
 
   const makeEngineMove = useCallback(async () => {
     if (chess.isGameOver() || chess.turn() === playerColor) return
@@ -108,7 +110,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       setSelectedSquare(null)
 
       const desc = describeMoveSpoken(move.san, chess.turn() === 'w' ? 'b' : 'w')
-      if (settings.autoSpeak) speech.speak(desc)
+      if (!muted) speech.speak(desc)
 
       const advice = getPositionAdvice(chess, playerColor)
       if (advice && settings.showCoaching) setCoaching(advice)
@@ -116,7 +118,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       updateGameStatus()
     }
     setThinking(false)
-  }, [chess, playerColor, settings.difficulty, settings.autoSpeak, settings.showCoaching, updateGameStatus])
+  }, [chess, playerColor, settings.difficulty, !muted, settings.showCoaching, updateGameStatus])
 
   // After state change, check if engine should move
   useEffect(() => {
@@ -147,7 +149,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         const tempChess = new Chess(moveBefore)
         analyzePlayerMove(tempChess, move.san, playerColor, settings.difficulty).then(analysis => {
           setAnalyses(prev => ({ ...prev, [moveIndex]: analysis }))
-          if (analysis.category !== 'good' && settings.autoSpeak) {
+          if (analysis.category !== 'good' && !muted) {
             speech.speak(analysis.explanation)
           }
         })
@@ -157,7 +159,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     } catch {
       return false
     }
-  }, [chess, isPlayerTurn, playerColor, settings.showCoaching, settings.autoSpeak, settings.difficulty, updateGameStatus])
+  }, [chess, isPlayerTurn, playerColor, settings.showCoaching, !muted, settings.difficulty, updateGameStatus])
 
   const resetGame = useCallback(() => {
     chess.reset()
@@ -170,8 +172,8 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     setGameStatus('playing')
     setEvaluation(0)
     setHeardText('')
-    if (settings.autoSpeak) speech.speak('New game started.')
-  }, [chess, settings.autoSpeak])
+    if (!muted) speech.speak('New game started.')
+  }, [chess, !muted])
 
   // Voice control
   const startVoiceListening = useCallback(() => {
@@ -197,14 +199,14 @@ export function PlayTab({ settings, update }: PlayTabProps) {
           return next
         })
         setCoaching('Took back the last move.')
-        if (settings.autoSpeak) speech.speak('Move taken back.')
+        if (!muted) speech.speak('Move taken back.')
         return
       }
 
       if (moveStr === '__resign__') {
         setGameStatus('resigned')
         setCoaching('You resigned.')
-        if (settings.autoSpeak) speech.speak('You resigned.')
+        if (!muted) speech.speak('You resigned.')
         return
       }
 
@@ -219,7 +221,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         const matchedMove = legalMoves.find(m => m.san === moveStr)
         if (matchedMove) {
           handleMove(matchedMove.from, matchedMove.to, matchedMove.promotion)
-          if (settings.autoSpeak && !settings.showCoaching) {
+          if (!muted && !settings.showCoaching) {
             const desc = describeMoveSpoken(moveStr, playerColor)
             speech.speak(desc)
           }
@@ -241,7 +243,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         }
       },
     })
-  }, [chess, isPlayerTurn, playerColor, settings.autoSpeak, settings.showCoaching, settings.microphone, gameStatus, handleMove, resetGame])
+  }, [chess, isPlayerTurn, playerColor, !muted, settings.showCoaching, settings.microphone, gameStatus, handleMove, resetGame])
 
   // Start/stop voice listening when microphone setting changes
   useEffect(() => {
@@ -404,16 +406,6 @@ export function PlayTab({ settings, update }: PlayTabProps) {
             onClick={() => update({ microphone: !settings.microphone })}
           >
             {settings.microphone ? 'Mic On' : 'Mic Off'}
-          </button>
-          <button
-            className={`rounded-[0.75rem] border px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold ${
-              settings.audio
-                ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
-                : 'border-[var(--line)] bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]'
-            }`}
-            onClick={() => update({ audio: !settings.audio, autoSpeak: !settings.audio })}
-          >
-            {settings.audio ? 'Sound On' : 'Sound Off'}
           </button>
         </div>
 
