@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { GameShell, GameTopbar } from '@freegamestore/games'
+import { GameShell, GameTopbar, GameAuth } from '@freegamestore/games'
 import { Settings2 } from 'lucide-react'
 import { useApplySettings, useSettings } from './hooks.ts'
 import { PlayTab } from './components/PlayTab.tsx'
@@ -43,16 +43,19 @@ export default function App() {
         <GameTopbar
           title="Chess"
           actions={
-            <button
-              className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
-                mode === 'preferences'
-                  ? 'bg-[var(--ink)] text-[var(--paper)]'
-                  : 'text-[var(--muted)] hover:text-[var(--ink)]'
-              }`}
-              onClick={() => navigate(mode === 'preferences' ? 'play' : 'preferences')}
-            >
-              <Settings2 className="h-4 w-4" strokeWidth={1.7} />
-            </button>
+            <>
+              <button
+                className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
+                  mode === 'preferences'
+                    ? 'bg-[var(--ink)] text-[var(--paper)]'
+                    : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                }`}
+                onClick={() => navigate(mode === 'preferences' ? 'play' : 'preferences')}
+              >
+                <Settings2 className="h-4 w-4" strokeWidth={1.7} />
+              </button>
+              <GameAuth />
+            </>
           }
         />
       }
