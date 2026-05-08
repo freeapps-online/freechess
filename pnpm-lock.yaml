@@ -14,6 +14,9 @@ importers:
 
   web:
     dependencies:
+      '@freeappstore/games':
+        specifier: ^0.3.0
+        version: 0.3.0(react@19.2.5)
       chess.js:
         specifier: ^1.0.0-beta.8
         version: 1.4.0
@@ -472,6 +475,12 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@freeappstore/games@0.3.0':
+    resolution: {integrity: sha512-ZR9VMo+7/FZXYhN/TayL2VmInH9ztJfjsN56BYhEHGWcdRQKXY/YGZYOUOgQ0KzYARIosbf2Wx6eBF68KeGSwA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      react: ^19.0.0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2217,6 +2226,10 @@ snapshots:
       levn: 0.4.1
 
   '@exodus/bytes@1.15.0': {}
+
+  '@freeappstore/games@0.3.0(react@19.2.5)':
+    dependencies:
+      react: 19.2.5
 
   '@humanfs/core@0.19.2':
     dependencies:

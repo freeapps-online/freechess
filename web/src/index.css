@@ -143,10 +143,12 @@ html {
 }
 
 body {
-  height: 100svh;
+  margin: 0;
+  height: 100dvh;
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
   background:
     radial-gradient(circle at top left, var(--bg-blob-1), transparent 32%),
     radial-gradient(circle at top right, var(--bg-blob-2), transparent 30%),
