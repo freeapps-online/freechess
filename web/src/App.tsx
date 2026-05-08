@@ -42,6 +42,7 @@ export default function App() {
       topbar={
         <GameTopbar
           title="Chess"
+          rules={<div><h3 style={{fontWeight:700}}>Chess</h3><h4 style={{fontWeight:600}}>Controls</h4><ul><li>Tap a piece to select, tap destination to move</li><li>Flip board, undo moves</li><li>Voice control available</li></ul><h4 style={{fontWeight:600}}>Rules</h4><ul><li>Play against the engine</li><li>Six difficulty levels (beginner to Stockfish)</li><li>Eval bar shows position advantage</li></ul></div>}
           actions={
             <>
               <button
