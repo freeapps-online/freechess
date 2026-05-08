@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { GameShell, GameTopbar } from '@freeappstore/games'
+import { GameShell, GameTopbar } from '@freegamestore/games'
 import { Settings2 } from 'lucide-react'
 import { useApplySettings, useSettings } from './hooks.ts'
 import { PlayTab } from './components/PlayTab.tsx'
