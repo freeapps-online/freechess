@@ -126,7 +126,7 @@ function AnalysisRow({ analysis, active, onClick }: { analysis: MoveAnalysis; ac
 
   return (
     <button
-      className={`ml-7.5 w-[calc(100%-1.875rem)] text-left rounded-[0.5rem] border px-2.5 py-1.5 text-xs transition-all ${bg || 'border-[var(--line)]'} ${
+      className={`ml-7.5 w-[calc(100%-1.875rem)] text-left rounded-[0.5rem] border px-2.5 py-1.5 min-h-[2.75rem] text-xs transition-all ${bg || 'border-[var(--line)]'} ${
         active ? 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--paper)]' : ''
       } ${hasBest ? 'cursor-pointer hover:brightness-110' : ''}`}
       onClick={hasBest ? onClick : undefined}

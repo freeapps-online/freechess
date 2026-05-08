@@ -377,26 +377,26 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         {/* Game controls */}
         <div className="flex flex-wrap gap-1.5 landscape:gap-1">
           <button
-            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
+            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
             onClick={resetGame}
           >
             New Game
           </button>
           <button
-            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
+            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
             onClick={handleUndo}
             disabled={history.length < 2}
           >
             Undo
           </button>
           <button
-            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
+            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
             onClick={flipBoard}
           >
             Flip
           </button>
           <button
-            className={`rounded-[0.75rem] border px-3 py-2 text-xs font-semibold ${
+            className={`rounded-[0.75rem] border px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold ${
               settings.microphone
                 ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
                 : 'border-[var(--line)] bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]'
@@ -406,7 +406,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
             {settings.microphone ? 'Mic On' : 'Mic Off'}
           </button>
           <button
-            className={`rounded-[0.75rem] border px-3 py-2 text-xs font-semibold ${
+            className={`rounded-[0.75rem] border px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold ${
               settings.audio
                 ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
                 : 'border-[var(--line)] bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]'
@@ -424,7 +424,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
             {([1, 2, 3, 4, 5] as Difficulty[]).map(d => (
               <button
                 key={d}
-                className={`rounded-[0.5rem] px-2 py-1 text-xs font-semibold ${
+                className={`rounded-[0.5rem] min-h-[2.75rem] min-w-[2.75rem] px-2 text-xs font-semibold ${
                   settings.difficulty === d
                     ? 'bg-[var(--accent)] text-white'
                     : 'bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)]'
@@ -442,7 +442,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
           <span className="text-xs font-semibold text-[var(--muted)]">Play as:</span>
           <div className="flex gap-1">
             <button
-              className={`rounded-[0.5rem] px-3 py-1 text-sm ${
+              className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
                 playerColor === 'w'
                   ? 'bg-[var(--accent)] text-white font-semibold'
                   : 'bg-[var(--glass)] text-[var(--muted)]'
@@ -452,7 +452,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
               White
             </button>
             <button
-              className={`rounded-[0.5rem] px-3 py-1 text-sm ${
+              className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
                 playerColor === 'b'
                   ? 'bg-[var(--accent)] text-white font-semibold'
                   : 'bg-[var(--glass)] text-[var(--muted)]'
@@ -481,7 +481,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
               {gameStatus === 'resigned' && 'You Resigned'}
             </div>
             <button
-              className="mt-2 rounded-full bg-[var(--accent)] px-6 py-2 text-sm font-semibold text-white"
+              className="mt-2 rounded-full bg-[var(--accent)] px-6 min-h-[2.75rem] text-sm font-semibold text-white"
               onClick={resetGame}
             >
               Play Again
