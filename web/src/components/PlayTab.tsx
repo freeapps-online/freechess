@@ -375,9 +375,9 @@ export function PlayTab({ settings, update }: PlayTabProps) {
       </div>
 
       {/* Sidebar: moves, coaching, controls */}
-      <div className="flex flex-col gap-2 lg:gap-3 flex-1 lg:min-w-[240px] min-h-0 min-w-0 overflow-y-auto">
+      <div className="flex flex-col gap-1.5 lg:gap-3 flex-1 lg:min-w-[240px] min-h-0 min-w-0 overflow-y-auto">
         {/* Game controls */}
-        <div className="flex flex-wrap gap-1.5 landscape:gap-1">
+        <div className="flex gap-1.5 landscape:gap-1 overflow-x-auto shrink-0">
           <button
             className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
             onClick={resetGame}
@@ -409,50 +409,50 @@ export function PlayTab({ settings, update }: PlayTabProps) {
           </button>
         </div>
 
-        {/* Difficulty selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--muted)]">Difficulty:</span>
-          <div className="flex gap-1">
-            {([1, 2, 3, 4, 5] as Difficulty[]).map(d => (
-              <button
-                key={d}
-                className={`rounded-[0.5rem] min-h-[2.75rem] min-w-[2.75rem] px-2 text-xs font-semibold ${
-                  settings.difficulty === d
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)]'
-                }`}
-                onClick={() => update({ difficulty: d })}
-              >
-                {d}
-              </button>
-            ))}
+        {/* Difficulty + Color picker — single row in landscape */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-[var(--muted)]">Difficulty:</span>
+            <div className="flex gap-0.5">
+              {([1, 2, 3, 4, 5] as Difficulty[]).map(d => (
+                <button
+                  key={d}
+                  className={`rounded-[0.5rem] min-h-[2.75rem] min-w-[2.75rem] px-2 text-xs font-semibold ${
+                    settings.difficulty === d
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)]'
+                  }`}
+                  onClick={() => update({ difficulty: d })}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Color picker */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--muted)]">Play as:</span>
-          <div className="flex gap-1">
-            <button
-              className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
-                playerColor === 'w'
-                  ? 'bg-[var(--accent)] text-white font-semibold'
-                  : 'bg-[var(--glass)] text-[var(--muted)]'
-              }`}
-              onClick={() => { update({ playerColor: 'w', boardFlipped: false }); resetGame() }}
-            >
-              White
-            </button>
-            <button
-              className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
-                playerColor === 'b'
-                  ? 'bg-[var(--accent)] text-white font-semibold'
-                  : 'bg-[var(--glass)] text-[var(--muted)]'
-              }`}
-              onClick={() => { update({ playerColor: 'b', boardFlipped: false }); resetGame() }}
-            >
-              Black
-            </button>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-[var(--muted)]">Play as:</span>
+            <div className="flex gap-0.5">
+              <button
+                className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
+                  playerColor === 'w'
+                    ? 'bg-[var(--accent)] text-white font-semibold'
+                    : 'bg-[var(--glass)] text-[var(--muted)]'
+                }`}
+                onClick={() => { update({ playerColor: 'w', boardFlipped: false }); resetGame() }}
+              >
+                White
+              </button>
+              <button
+                className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
+                  playerColor === 'b'
+                    ? 'bg-[var(--accent)] text-white font-semibold'
+                    : 'bg-[var(--glass)] text-[var(--muted)]'
+                }`}
+                onClick={() => { update({ playerColor: 'b', boardFlipped: false }); resetGame() }}
+              >
+                Black
+              </button>
+            </div>
           </div>
         </div>
 
