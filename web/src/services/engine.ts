@@ -266,10 +266,9 @@ export async function findBestMoveSF(chess: Chess, difficulty: Difficulty): Prom
 }
 
 export async function evaluatePositionSF(chess: Chess): Promise<number> {
-  const result = await stockfish.evaluate(chess.fen(), 10)
-  // Stockfish returns score from the side-to-move's perspective
-  // We want it from white's perspective
-  return chess.turn() === 'w' ? result.score : -result.score
+  const evalResult = await stockfish.evaluate(chess.fen(), 10)
+  // Stockfish reports score from the side-to-move's perspective; normalize to white.
+  return chess.turn() === 'w' ? evalResult.score : -evalResult.score
 }
 
 export async function evaluateMoveSF(

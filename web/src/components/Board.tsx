@@ -4,10 +4,10 @@ import { Chess, type Square } from 'chess.js'
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1']
 
-// Use filled glyphs (black set) for both colors — we control color via SVG fill/stroke
-// Use filled glyphs + VS15 (\uFE0E) to force text rendering (prevents emoji on macOS/iOS)
-const PIECE_CHARS: Record<string, string> = {
-  k: '\u265A\uFE0E', q: '\u265B\uFE0E', r: '\u265C\uFE0E', b: '\u265D\uFE0E', n: '\u265E\uFE0E', p: '\u265F\uFE0E',
+// Cburnett SVG chess pieces (CC-BY-SA 3.0 — used by lichess / Wikipedia).
+// Files live in /public/pieces/{w,b}{k,q,r,b,n,p}.svg
+function pieceHref(color: 'w' | 'b', type: string): string {
+  return `/pieces/${color}${type}.svg`
 }
 
 interface BoardProps {
@@ -25,7 +25,6 @@ interface BoardProps {
 export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedSquare, onSquareClick, previewFen, previewArrow }: BoardProps) {
   const [dragFrom, setDragFrom] = useState<Square | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
-  const [dragPiece, setDragPiece] = useState<string | null>(null)
 
   const isPreview = !!previewFen
   const displayChess = isPreview ? new Chess(previewFen!) : chess
@@ -90,7 +89,6 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
       const piece = chess.get(start.sq)
       if (piece) {
         setDragFrom(start.sq)
-        setDragPiece(PIECE_CHARS[piece.type])
         onSquareClick?.(start.sq)
       }
     }
@@ -109,7 +107,6 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
       // Not a drag — it was a tap, handled by onClick
       setDragFrom(null)
       setDragPos(null)
-      setDragPiece(null)
       return
     }
 
@@ -137,7 +134,6 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
 
     setDragFrom(null)
     setDragPos(null)
-    setDragPiece(null)
   }, [dragFrom, chess, files, ranks, onMove, onSquareClick])
 
   return (
@@ -171,36 +167,14 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
                   fill={isLight ? 'var(--board-light)' : 'var(--board-dark)'}
                 />
 
-                {/* Highlight last move */}
-                {isLastMove && (
+                {/* Square overlay: last-move, selected piece, or king-in-check */}
+                {(isLastMove || isSelected || isCheckSquare) && (
                   <rect
                     x={col * 100}
                     y={row * 100}
                     width={100}
                     height={100}
-                    fill="var(--board-highlight)"
-                  />
-                )}
-
-                {/* Selected square */}
-                {isSelected && (
-                  <rect
-                    x={col * 100}
-                    y={row * 100}
-                    width={100}
-                    height={100}
-                    fill="var(--board-highlight)"
-                  />
-                )}
-
-                {/* Check highlight */}
-                {isCheckSquare && (
-                  <rect
-                    x={col * 100}
-                    y={row * 100}
-                    width={100}
-                    height={100}
-                    fill="var(--board-check)"
+                    fill={isCheckSquare ? 'var(--board-check)' : 'var(--board-highlight)'}
                   />
                 )}
 
@@ -238,27 +212,14 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
 
                 {/* Piece */}
                 {piece && !(dragFrom === sq && dragPos) && (
-                  piece.color === 'w' ? (
-                    <g style={{ pointerEvents: 'none', userSelect: 'none' }}>
-                      {/* Shadow layer fills internal cutouts */}
-                      <text x={col * 100 + 50} y={row * 100 + 72} textAnchor="middle" fontSize={72}
-                        fill="#333" stroke="#333" strokeWidth={8} strokeLinejoin="round">
-                        {PIECE_CHARS[piece.type]}
-                      </text>
-                      {/* White fill on top */}
-                      <text x={col * 100 + 50} y={row * 100 + 72} textAnchor="middle" fontSize={72}
-                        fill="#fff">
-                        {PIECE_CHARS[piece.type]}
-                      </text>
-                    </g>
-                  ) : (
-                    <text
-                      x={col * 100 + 50} y={row * 100 + 72} textAnchor="middle" fontSize={72}
-                      fill="#1a1a1a"
-                      style={{ pointerEvents: 'none', userSelect: 'none' }}>
-                      {PIECE_CHARS[piece.type]}
-                    </text>
-                  )
+                  <image
+                    href={pieceHref(piece.color, piece.type)}
+                    x={col * 100 + 6}
+                    y={row * 100 + 6}
+                    width={88}
+                    height={88}
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  />
                 )}
               </g>
             )
@@ -333,24 +294,18 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         )}
 
         {/* Dragged piece */}
-        {!isPreview && dragPos && dragPiece && dragFrom && (() => {
+        {!isPreview && dragPos && dragFrom && (() => {
           const dp = chess.get(dragFrom)
-          const isWhite = dp?.color === 'w'
-          return isWhite ? (
-            <g style={{ pointerEvents: 'none', opacity: 0.9 }}>
-              <text x={dragPos.x} y={dragPos.y + 18} textAnchor="middle" fontSize={80}
-                fill="#333" stroke="#333" strokeWidth={8} strokeLinejoin="round">
-                {dragPiece}
-              </text>
-              <text x={dragPos.x} y={dragPos.y + 18} textAnchor="middle" fontSize={80} fill="#fff">
-                {dragPiece}
-              </text>
-            </g>
-          ) : (
-            <text x={dragPos.x} y={dragPos.y + 18} textAnchor="middle" fontSize={80}
-              fill="#1a1a1a" style={{ pointerEvents: 'none', opacity: 0.9 }}>
-              {dragPiece}
-            </text>
+          if (!dp) return null
+          return (
+            <image
+              href={pieceHref(dp.color, dp.type)}
+              x={dragPos.x - 50}
+              y={dragPos.y - 50}
+              width={100}
+              height={100}
+              style={{ pointerEvents: 'none', opacity: 0.9 }}
+            />
           )
         })()}
       </svg>

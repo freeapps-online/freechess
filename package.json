@@ -2,6 +2,13 @@
   "name": "freechessapp",
   "private": true,
   "version": "0.1.0",
+  "description": "A free, open-source chess game with Stockfish analysis.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freegamestore-online/chess.git"
+  },
+  "homepage": "https://chess.freegamestore.online",
   "packageManager": "pnpm@10.30.3",
   "engines": {
     "node": ">=20.19.0"
@@ -16,5 +23,11 @@
   },
   "devDependencies": {
     "wrangler": "^4.87.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion@>=5.0.0 <5.0.6": ">=5.0.6",
+      "ws@>=8.0.0 <8.20.1": ">=8.20.1"
+    }
   }
 }

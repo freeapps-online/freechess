@@ -2,33 +2,33 @@ import type { Settings, ThemePreference, FontSizePreference, MotionPreference, S
 
 interface PreferencesTabProps {
   settings: Settings
-  update: (patch: Partial<Settings>) => void
+  updateSettings: (patch: Partial<Settings>) => void
 }
 
-export function PreferencesTab({ settings, update }: PreferencesTabProps) {
+export function PreferencesTab({ settings, updateSettings }: PreferencesTabProps) {
   return (
     <div className="space-y-6">
       <Section title="Appearance">
-        <SegmentRow label="Theme" options={['system', 'light', 'dark'] as ThemePreference[]} value={settings.theme} onChange={(theme) => update({ theme })} />
-        <SegmentRow label="Board" options={['classic', 'green', 'icy', 'dark', 'midnight'] as BoardTheme[]} labels={['Brown', 'Green', 'Ice', 'Dark', 'Night']} value={settings.boardTheme} onChange={(boardTheme) => update({ boardTheme })} />
-        <SegmentRow label="Surface" options={['soft', 'bold'] as SurfacePreference[]} value={settings.surface} onChange={(surface) => update({ surface })} />
-        <SegmentRow label="Motion" options={['full', 'reduced'] as MotionPreference[]} value={settings.motion} onChange={(motion) => update({ motion })} />
+        <SegmentRow label="Theme" options={['system', 'light', 'dark'] as ThemePreference[]} value={settings.theme} onChange={(theme) => updateSettings({ theme })} />
+        <SegmentRow label="Board" options={['classic', 'green', 'icy', 'dark', 'midnight'] as BoardTheme[]} labels={['Brown', 'Green', 'Ice', 'Dark', 'Night']} value={settings.boardTheme} onChange={(boardTheme) => updateSettings({ boardTheme })} />
+        <SegmentRow label="Surface" options={['soft', 'bold'] as SurfacePreference[]} value={settings.surface} onChange={(surface) => updateSettings({ surface })} />
+        <SegmentRow label="Motion" options={['full', 'reduced'] as MotionPreference[]} value={settings.motion} onChange={(motion) => updateSettings({ motion })} />
       </Section>
 
       <Section title="Size">
-        <SegmentRow label="Labels" options={['small', 'medium', 'large', 'xlarge'] as FontSizePreference[]} labels={['S', 'M', 'L', 'XL']} value={settings.labelSize} onChange={(labelSize) => update({ labelSize })} />
-        <SegmentRow label="Content" options={['small', 'medium', 'large', 'xlarge'] as FontSizePreference[]} labels={['S', 'M', 'L', 'XL']} value={settings.contentSize} onChange={(contentSize) => update({ contentSize })} />
+        <SegmentRow label="Labels" options={['small', 'medium', 'large', 'xlarge'] as FontSizePreference[]} labels={['S', 'M', 'L', 'XL']} value={settings.labelSize} onChange={(labelSize) => updateSettings({ labelSize })} />
+        <SegmentRow label="Content" options={['small', 'medium', 'large', 'xlarge'] as FontSizePreference[]} labels={['S', 'M', 'L', 'XL']} value={settings.contentSize} onChange={(contentSize) => updateSettings({ contentSize })} />
       </Section>
 
       <Section title="Sound">
-        <ToggleRow label="Audio narration" description="Speak moves and coaching aloud" value={settings.audio} onChange={(audio) => update({ audio, autoSpeak: audio })} />
-        <ToggleRow label="Microphone input" description="Control the game with your voice" value={settings.microphone} onChange={(microphone) => update({ microphone })} />
-        <ToggleRow label="Auto-speak coaching" description="Announce analysis after moves" value={settings.autoSpeak} onChange={(autoSpeak) => update({ autoSpeak })} />
+        <ToggleRow label="Audio narration" description="Speak moves and coaching aloud" value={settings.audio} onChange={(audio) => updateSettings({ audio, autoSpeak: audio })} />
+        <ToggleRow label="Microphone input" description="Control the game with your voice" value={settings.microphone} onChange={(microphone) => updateSettings({ microphone })} />
+        <ToggleRow label="Auto-speak coaching" description="Announce analysis after moves" value={settings.autoSpeak} onChange={(autoSpeak) => updateSettings({ autoSpeak })} />
       </Section>
 
       <Section title="Game">
-        <ToggleRow label="Show coaching" description="Display analysis of your moves" value={settings.showCoaching} onChange={(showCoaching) => update({ showCoaching })} />
-        <ToggleRow label="Evaluation bar" description="Show position evaluation on the board" value={settings.showEvalBar} onChange={(showEvalBar) => update({ showEvalBar })} />
+        <ToggleRow label="Show coaching" description="Display analysis of your moves" value={settings.showCoaching} onChange={(showCoaching) => updateSettings({ showCoaching })} />
+        <ToggleRow label="Evaluation bar" description="Show position evaluation on the board" value={settings.showEvalBar} onChange={(showEvalBar) => updateSettings({ showEvalBar })} />
       </Section>
 
       <div className="pt-4 text-center">

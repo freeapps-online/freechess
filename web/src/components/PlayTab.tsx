@@ -14,7 +14,7 @@ import type { Difficulty, MoveAnalysis, GameStatus } from '../types.ts'
 
 interface PlayTabProps {
   settings: Settings
-  update: (patch: Partial<Settings>) => void
+  updateSettings: (patch: Partial<Settings>) => void
 }
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -25,7 +25,7 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   5: 'Stockfish Max',
 }
 
-export function PlayTab({ settings, update }: PlayTabProps) {
+export function PlayTab({ settings, updateSettings }: PlayTabProps) {
   const { muted } = useSound()
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState(chess.fen())
@@ -175,6 +175,24 @@ export function PlayTab({ settings, update }: PlayTabProps) {
     if (!muted) speech.speak('New game started.')
   }, [chess, !muted])
 
+  // Roll back the most recent player + engine move pair. Returns true if anything was undone.
+  const undoMovePair = useCallback(() => {
+    const lenBefore = chess.history().length
+    if (lenBefore < 2) return false
+    chess.undo()
+    chess.undo()
+    setFen(chess.fen())
+    setLastMove(null)
+    setSelectedSquare(null)
+    setAnalyses(prev => {
+      const next = { ...prev }
+      delete next[lenBefore - 1]
+      delete next[lenBefore - 2]
+      return next
+    })
+    return true
+  }, [chess])
+
   // Voice control
   const startVoiceListening = useCallback(() => {
     if (listeningRef.current) return
@@ -186,20 +204,10 @@ export function PlayTab({ settings, update }: PlayTabProps) {
 
       if (moveStr === '__undo__') {
         // Undo both player and engine moves
-        const lenBefore = chess.history().length
-        chess.undo()
-        chess.undo()
-        setFen(chess.fen())
-        setLastMove(null)
-        setSelectedSquare(null)
-        setAnalyses(prev => {
-          const next = { ...prev }
-          delete next[lenBefore - 1]
-          delete next[lenBefore - 2]
-          return next
-        })
-        setCoaching('Took back the last move.')
-        if (!muted) speech.speak('Move taken back.')
+        if (undoMovePair()) {
+          setCoaching('Took back the last move.')
+          if (!muted) speech.speak('Move taken back.')
+        }
         return
       }
 
@@ -243,7 +251,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
         }
       },
     })
-  }, [chess, isPlayerTurn, playerColor, !muted, settings.showCoaching, settings.microphone, gameStatus, handleMove, resetGame])
+  }, [chess, isPlayerTurn, playerColor, !muted, settings.showCoaching, settings.microphone, gameStatus, handleMove, resetGame, undoMovePair])
 
   // Start/stop voice listening when microphone setting changes
   useEffect(() => {
@@ -266,26 +274,15 @@ export function PlayTab({ settings, update }: PlayTabProps) {
   }, [settings.microphone, gameStatus, startVoiceListening])
 
   const handleUndo = useCallback(() => {
-    const lenBefore = chess.history().length
-    if (lenBefore < 2) return
-    chess.undo()
-    chess.undo()
-    setFen(chess.fen())
-    setLastMove(null)
-    setSelectedSquare(null)
-    setAnalyses(prev => {
-      const next = { ...prev }
-      delete next[lenBefore - 1]
-      delete next[lenBefore - 2]
-      return next
-    })
-    setCoaching(null)
-    setGameStatus('playing')
-  }, [chess])
+    if (undoMovePair()) {
+      setCoaching(null)
+      setGameStatus('playing')
+    }
+  }, [undoMovePair])
 
   const flipBoard = useCallback(() => {
-    update({ boardFlipped: !settings.boardFlipped })
-  }, [settings.boardFlipped, update])
+    updateSettings({ boardFlipped: !settings.boardFlipped })
+  }, [settings.boardFlipped, updateSettings])
 
   const history = chess.history()
 
@@ -403,7 +400,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
                 ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
                 : 'border-[var(--line)] bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]'
             }`}
-            onClick={() => update({ microphone: !settings.microphone })}
+            onClick={() => updateSettings({ microphone: !settings.microphone })}
           >
             {settings.microphone ? 'Mic On' : 'Mic Off'}
           </button>
@@ -422,7 +419,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
                       ? 'bg-[var(--accent)] text-white'
                       : 'bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)]'
                   }`}
-                  onClick={() => update({ difficulty: d })}
+                  onClick={() => updateSettings({ difficulty: d })}
                 >
                   {d}
                 </button>
@@ -438,7 +435,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
                     ? 'bg-[var(--accent)] text-white font-semibold'
                     : 'bg-[var(--glass)] text-[var(--muted)]'
                 }`}
-                onClick={() => { update({ playerColor: 'w', boardFlipped: false }); resetGame() }}
+                onClick={() => { updateSettings({ playerColor: 'w', boardFlipped: false }); resetGame() }}
               >
                 White
               </button>
@@ -448,7 +445,7 @@ export function PlayTab({ settings, update }: PlayTabProps) {
                     ? 'bg-[var(--accent)] text-white font-semibold'
                     : 'bg-[var(--glass)] text-[var(--muted)]'
                 }`}
-                onClick={() => { update({ playerColor: 'b', boardFlipped: false }); resetGame() }}
+                onClick={() => { updateSettings({ playerColor: 'b', boardFlipped: false }); resetGame() }}
               >
                 Black
               </button>

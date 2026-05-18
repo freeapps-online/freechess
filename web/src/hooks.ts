@@ -12,7 +12,7 @@ export function useSpeech(): SpeechState {
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(loadSettings)
 
-  const update = useCallback((patch: Partial<Settings>) => {
+  const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings(prev => {
       const next = { ...prev, ...patch }
       saveSettings(next)
@@ -20,7 +20,7 @@ export function useSettings() {
     })
   }, [])
 
-  return { settings, update }
+  return { settings, updateSettings }
 }
 
 export function useApplySettings(settings: Settings) {

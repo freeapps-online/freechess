@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  brace-expansion@>=5.0.0 <5.0.6: '>=5.0.6'
+  ws@>=8.0.0 <8.20.1: '>=8.20.1'
+
 importers:
 
   .:
@@ -15,8 +19,8 @@ importers:
   web:
     dependencies:
       '@freegamestore/games':
-        specifier: ^0.12.0
-        version: 0.12.0(react@19.2.5)
+        specifier: ^0.13.0
+        version: 0.13.0(react@19.2.5)
       chess.js:
         specifier: ^1.0.0-beta.8
         version: 1.4.0
@@ -915,8 +919,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@freegamestore/games@0.12.0':
-    resolution: {integrity: sha512-0t+NS+2ciSWjdbalp1QyeNGmfRYg4FMN9TAe/zKYGJ2s8M5RHIKrgjjJVVD8znuhNR+2pCfRbDE7wzXbEP4Bhg==}
+  '@freegamestore/games@0.13.0':
+    resolution: {integrity: sha512-/2T6pXa6QNJxlvK9ToPkoQBu9Rq68oLRPJQuX18YQd/LFKT8Uc0nK072zUaDSuU5rUz6ejSMKlmjUgcMLm0S0g==}
     engines: {node: '>=22'}
     peerDependencies:
       react: ^19.0.0
@@ -1790,8 +1794,8 @@ packages:
   brace-expansion@2.1.0:
     resolution: {integrity: sha512-TN1kCZAgdgweJhWWpgKYrQaMNHcDULHkWwQIspdtjV4Y5aurRdZpjAqn6yX3FPqTA9ngHCc4hJxMAMgGfve85w==}
 
-  brace-expansion@5.0.5:
-    resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
+  brace-expansion@5.0.6:
+    resolution: {integrity: sha512-kLpxurY4Z4r9sgMsyG0Z9uzsBlgiU/EFKhj/h91/8yHu0edo7XuixOIH3VcJ8kkxs6/jPzoI6U9Vj3WqbMQ94g==}
     engines: {node: 18 || 20 || >=22}
 
   browserslist@4.28.2:
@@ -3217,8 +3221,8 @@ packages:
       '@cloudflare/workers-types':
         optional: true
 
-  ws@8.18.0:
-    resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
+  ws@8.20.1:
+    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -4136,7 +4140,7 @@ snapshots:
 
   '@exodus/bytes@1.15.0': {}
 
-  '@freegamestore/games@0.12.0(react@19.2.5)':
+  '@freegamestore/games@0.13.0(react@19.2.5)':
     dependencies:
       react: 19.2.5
 
@@ -4856,7 +4860,7 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
 
-  brace-expansion@5.0.5:
+  brace-expansion@5.0.6:
     dependencies:
       balanced-match: 4.0.4
 
@@ -5646,7 +5650,7 @@ snapshots:
       sharp: 0.34.5
       undici: 7.24.8
       workerd: 1.20260430.1
-      ws: 8.18.0
+      ws: 8.20.1
       youch: 4.1.0-beta.10
     transitivePeerDependencies:
       - bufferutil
@@ -5654,7 +5658,7 @@ snapshots:
 
   minimatch@10.2.5:
     dependencies:
-      brace-expansion: 5.0.5
+      brace-expansion: 5.0.6
 
   minimatch@5.1.9:
     dependencies:
@@ -6494,7 +6498,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  ws@8.18.0: {}
+  ws@8.20.1: {}
 
   xml-name-validator@5.0.0: {}
 

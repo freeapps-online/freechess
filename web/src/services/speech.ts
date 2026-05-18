@@ -76,11 +76,11 @@ class SpeechService {
       let final = ''
       let interim = ''
       for (let i = 0; i < e.results.length; i++) {
-        const result = e.results[i]
-        if (result.isFinal) {
-          final += result[0].transcript
+        const sentence = e.results[i]
+        if (sentence.isFinal) {
+          final += sentence[0].transcript
         } else {
-          interim += result[0].transcript
+          interim += sentence[0].transcript
         }
       }
       this.state.transcript = final || interim

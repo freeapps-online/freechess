@@ -23,7 +23,7 @@ function getModeFromPath(): Mode {
 
 export default function App() {
   const [mode, setMode] = useState<Mode>(getModeFromPath)
-  const { settings, update } = useSettings()
+  const { settings, updateSettings } = useSettings()
   useApplySettings(settings)
 
   const navigate = useCallback((m: Mode) => {
@@ -62,10 +62,10 @@ export default function App() {
       }
     >
       <div className="relative w-full h-full">
-        {mode === 'play' && <PlayTab settings={settings} update={update} />}
+        {mode === 'play' && <PlayTab settings={settings} updateSettings={updateSettings} />}
         {mode === 'preferences' && (
           <section className="rounded-[1.25rem] bg-[var(--panel-quiet)] p-3 sm:p-4 lg:rounded-[1.5rem] lg:p-5">
-            <PreferencesTab settings={settings} update={update} />
+            <PreferencesTab settings={settings} updateSettings={updateSettings} />
           </section>
         )}
       </div>
