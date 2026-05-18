@@ -2,6 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Chess, type Square } from 'chess.js'
 import { Board } from './Board.tsx'
 import { MoveList } from './MoveList.tsx'
+import { EvalBar } from './EvalBar.tsx'
+import { PlayerRow } from './PlayerRow.tsx'
+import { GameControls } from './GameControls.tsx'
+import { DifficultyColorPicker } from './DifficultyColorPicker.tsx'
+import { GameOverBanner } from './GameOverBanner.tsx'
+import { VoiceInstructions } from './VoiceInstructions.tsx'
 import { findBestMove, evaluatePosition, findBestMoveSF, evaluatePositionSF, shouldUseStockfish } from '../services/engine.ts'
 import { stockfish } from '../services/stockfish.ts'
 import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../services/analysis.ts'
@@ -285,46 +291,43 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
   }, [settings.boardFlipped, updateSettings])
 
   const history = chess.history()
-
-  // Evaluation bar (from white's perspective, clamped)
-  const evalClamped = Math.max(-2000, Math.min(2000, evaluation))
-  const evalPercent = 50 + (evalClamped / 2000) * 50
-  const evalDisplay = evaluation > 0 ? `+${(evaluation / 100).toFixed(1)}` : (evaluation / 100).toFixed(1)
-
   const boardFlipped = settings.boardFlipped !== (playerColor === 'b')
+
+  const opponentBadge = thinking
+    ? <span className="ml-auto text-xs text-[var(--muted)] animate-pulse">Thinking...</span>
+    : undefined
+
+  const playerBadge = (
+    <>
+      {isPlayerTurn && !thinking && (
+        <span className="ml-1 rounded-full bg-[var(--success)]/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--success)]">
+          Your turn
+        </span>
+      )}
+      {settings.microphone && (
+        <div className="ml-2 flex items-center gap-1">
+          <div className={`h-2 w-2 rounded-full ${speechState.isListening ? 'bg-[var(--success)] pulse-ring' : 'bg-[var(--muted)]'}`} />
+          <span className="text-xs text-[var(--muted)]">
+            {speechState.isListening ? 'Listening' : 'Mic on'}
+          </span>
+        </div>
+      )}
+    </>
+  )
 
   return (
     <div className="flex flex-col gap-1 landscape:flex-row landscape:gap-3 lg:flex-row lg:gap-6 h-full overflow-hidden">
       {/* Board area */}
       <div className="flex flex-col gap-1 lg:gap-2 landscape:w-[min(55%,560px)] lg:w-[min(60%,560px)] min-h-0 shrink-0">
-        {/* Top bar: opponent info */}
-        <div className="flex items-center gap-2 px-1">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--glass)] text-sm lg:h-7 lg:w-7 lg:text-base">
-            {playerColor === 'w' ? '\u265A' : '\u2654'}
-          </div>
-          <span className="text-xs font-semibold text-[var(--ink)] lg:text-sm">
-            Engine ({DIFFICULTY_LABELS[settings.difficulty]})
-          </span>
-          {thinking && (
-            <span className="ml-auto text-xs text-[var(--muted)] animate-pulse">Thinking...</span>
-          )}
-        </div>
+        <PlayerRow
+          variant="opponent"
+          kingGlyph={playerColor === 'w' ? '\u265A' : '\u2654'}
+          label={`Engine (${DIFFICULTY_LABELS[settings.difficulty]})`}
+          right={opponentBadge}
+        />
 
-        {/* Eval bar + Board */}
         <div className="flex gap-1.5">
-          {settings.showEvalBar && (
-            <div className="w-3 lg:w-4 shrink-0 rounded-full overflow-hidden bg-[var(--board-dark)] relative">
-              <div
-                className="absolute bottom-0 left-0 right-0 bg-[var(--board-light)] transition-all duration-500"
-                style={{ height: `${evalPercent}%` }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[8px] font-bold text-[var(--ink)] mix-blend-difference [writing-mode:vertical-rl] rotate-180">
-                  {evalDisplay}
-                </span>
-              </div>
-            </div>
-          )}
+          {settings.showEvalBar && <EvalBar evaluation={evaluation} />}
           <div className="flex-1 min-w-0">
             <Board
               chess={chess}
@@ -340,30 +343,13 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
           </div>
         </div>
 
-        {/* Bottom bar: player info */}
-        <div className="flex items-center gap-2 px-1">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)]/20 text-sm lg:h-7 lg:w-7 lg:text-base">
-            {playerColor === 'w' ? '\u2654' : '\u265A'}
-          </div>
-          <span className="text-xs font-semibold text-[var(--ink)] lg:text-sm">You</span>
-          {isPlayerTurn && !thinking && (
-            <span className="ml-1 rounded-full bg-[var(--success)]/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--success)]">
-              Your turn
-            </span>
-          )}
+        <PlayerRow
+          variant="player"
+          kingGlyph={playerColor === 'w' ? '\u2654' : '\u265A'}
+          label="You"
+          right={playerBadge}
+        />
 
-          {/* Mic status */}
-          {settings.microphone && (
-            <div className="ml-2 flex items-center gap-1">
-              <div className={`h-2 w-2 rounded-full ${speechState.isListening ? 'bg-[var(--success)] pulse-ring' : 'bg-[var(--muted)]'}`} />
-              <span className="text-xs text-[var(--muted)]">
-                {speechState.isListening ? 'Listening' : 'Mic on'}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Voice transcript */}
         {settings.microphone && heardText && (
           <div className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass-soft)] px-3 py-2 text-sm text-[var(--muted)]">
             Heard: "{heardText}"
@@ -373,112 +359,34 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
 
       {/* Sidebar: moves, coaching, controls */}
       <div className="flex flex-col gap-1.5 lg:gap-3 flex-1 lg:min-w-[240px] min-h-0 min-w-0 overflow-y-auto">
-        {/* Game controls */}
-        <div className="flex gap-1.5 landscape:gap-1 overflow-x-auto shrink-0">
-          <button
-            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
-            onClick={resetGame}
-          >
-            New Game
-          </button>
-          <button
-            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
-            onClick={handleUndo}
-            disabled={history.length < 2}
-          >
-            Undo
-          </button>
-          <button
-            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
-            onClick={flipBoard}
-          >
-            Flip
-          </button>
-          <button
-            className={`rounded-[0.75rem] border px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold ${
-              settings.microphone
-                ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
-                : 'border-[var(--line)] bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]'
-            }`}
-            onClick={() => updateSettings({ microphone: !settings.microphone })}
-          >
-            {settings.microphone ? 'Mic On' : 'Mic Off'}
-          </button>
-        </div>
+        <GameControls
+          onNewGame={resetGame}
+          onUndo={handleUndo}
+          canUndo={history.length >= 2}
+          onFlip={flipBoard}
+          microphoneOn={settings.microphone}
+          onToggleMic={() => updateSettings({ microphone: !settings.microphone })}
+        />
 
-        {/* Difficulty + Color picker — single row in landscape */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-[var(--muted)]">Difficulty:</span>
-            <div className="flex gap-0.5">
-              {([1, 2, 3, 4, 5] as Difficulty[]).map(d => (
-                <button
-                  key={d}
-                  className={`rounded-[0.5rem] min-h-[2.75rem] min-w-[2.75rem] px-2 text-xs font-semibold ${
-                    settings.difficulty === d
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--glass)] text-[var(--muted)] hover:bg-[var(--glass-hover)]'
-                  }`}
-                  onClick={() => updateSettings({ difficulty: d })}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-[var(--muted)]">Play as:</span>
-            <div className="flex gap-0.5">
-              <button
-                className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
-                  playerColor === 'w'
-                    ? 'bg-[var(--accent)] text-white font-semibold'
-                    : 'bg-[var(--glass)] text-[var(--muted)]'
-                }`}
-                onClick={() => { updateSettings({ playerColor: 'w', boardFlipped: false }); resetGame() }}
-              >
-                White
-              </button>
-              <button
-                className={`rounded-[0.5rem] px-3 min-h-[2.75rem] min-w-[2.75rem] text-sm ${
-                  playerColor === 'b'
-                    ? 'bg-[var(--accent)] text-white font-semibold'
-                    : 'bg-[var(--glass)] text-[var(--muted)]'
-                }`}
-                onClick={() => { updateSettings({ playerColor: 'b', boardFlipped: false }); resetGame() }}
-              >
-                Black
-              </button>
-            </div>
-          </div>
-        </div>
+        <DifficultyColorPicker
+          difficulty={settings.difficulty}
+          onDifficultyChange={(d) => updateSettings({ difficulty: d })}
+          playerColor={playerColor}
+          onColorChange={(c) => { updateSettings({ playerColor: c, boardFlipped: false }); resetGame() }}
+        />
 
-        {/* Status message (voice feedback, game advice) */}
         {coaching && gameStatus === 'playing' && (
           <div className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass-soft)] px-3 py-2 text-sm text-[var(--ink)]">
             {coaching}
           </div>
         )}
 
-        {/* Game over banner */}
-        {gameStatus !== 'playing' && (
-          <div className="rounded-[1rem] border border-[var(--accent)]/30 bg-[var(--accent-gradient)] p-4 text-center">
-            <div className="text-lg font-bold text-[var(--ink)]">
-              {gameStatus === 'checkmate' && (chess.turn() === playerColor ? 'You Lost' : 'You Won!')}
-              {gameStatus === 'stalemate' && 'Stalemate'}
-              {gameStatus === 'draw' && 'Draw'}
-              {gameStatus === 'resigned' && 'You Resigned'}
-            </div>
-            <button
-              className="mt-2 rounded-full bg-[var(--accent)] px-6 min-h-[2.75rem] text-sm font-semibold text-white"
-              onClick={resetGame}
-            >
-              Play Again
-            </button>
-          </div>
-        )}
+        <GameOverBanner
+          status={gameStatus}
+          playerLost={chess.turn() === playerColor}
+          onPlayAgain={resetGame}
+        />
 
-        {/* Move list */}
         <div className="rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3">
           <div className="mb-2 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Moves</div>
           <MoveList
@@ -491,13 +399,11 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
                 return
               }
               if (!analysis.bestMove || analysis.bestMove === analysis.move) return
-              // Replay game to the position before this move
               const replay = new Chess()
               const moves = chess.history({ verbose: true })
               for (let i = 0; i < moveIndex; i++) {
                 replay.move(moves[i])
               }
-              // Find the best move in that position
               const legal = replay.moves({ verbose: true })
               const best = legal.find(m => m.san === analysis.bestMove)
               if (best) {
@@ -513,19 +419,7 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
           />
         </div>
 
-        {/* Voice instructions */}
-        {settings.microphone && (
-          <div className="space-y-1 rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3 text-[0.7rem] text-[var(--muted)]">
-            <div className="font-bold uppercase tracking-[0.15em]">Voice Commands</div>
-            <div className="flex justify-between"><span>"e4"</span><span>Pawn to e4</span></div>
-            <div className="flex justify-between"><span>"knight f3"</span><span>Knight to f3</span></div>
-            <div className="flex justify-between"><span>"bishop to c4"</span><span>Bishop to c4</span></div>
-            <div className="flex justify-between"><span>"castle kingside"</span><span>Short castle</span></div>
-            <div className="flex justify-between"><span>"takes on d5"</span><span>Capture on d5</span></div>
-            <div className="flex justify-between"><span>"undo"</span><span>Take back move</span></div>
-            <div className="flex justify-between"><span>"new game"</span><span>Start over</span></div>
-          </div>
-        )}
+        {settings.microphone && <VoiceInstructions />}
       </div>
     </div>
   )
