@@ -1,27 +1,40 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GameShell, GameTopbar, GameAuth } from '@freegamestore/games'
-import { Puzzle as PuzzleIcon, Settings2 } from 'lucide-react'
+import { Puzzle as PuzzleIcon, Settings2, Users } from 'lucide-react'
 import { useApplySettings, useSettings } from './hooks.ts'
 import { PlayTab } from './components/PlayTab.tsx'
 import { PreferencesTab } from './components/PreferencesTab.tsx'
 import { PuzzleTab } from './components/PuzzleTab.tsx'
+import { MultiplayerTab } from './components/MultiplayerTab.tsx'
 import type { Mode } from './types.ts'
 
 const PATH_TO_MODE: Record<string, Mode> = {
   '/': 'play',
   '/play': 'play',
   '/puzzles': 'puzzles',
+  '/multiplayer': 'multiplayer',
   '/preferences': 'preferences',
 }
 
 const MODE_TO_PATH: Record<Mode, string> = {
   play: '/',
   puzzles: '/puzzles',
+  multiplayer: '/multiplayer',
   preferences: '/preferences',
 }
 
-function getModeFromPath(): Mode {
-  return PATH_TO_MODE[window.location.pathname] ?? 'play'
+function parseRoute(): { mode: Mode; gameId: string | null } {
+  const path = window.location.pathname
+  const gameMatch = path.match(/^\/g\/([a-z0-9]{6,12})$/)
+  if (gameMatch) return { mode: 'multiplayer', gameId: gameMatch[1] }
+  return { mode: PATH_TO_MODE[path] ?? 'play', gameId: null }
+}
+
+async function createGame(): Promise<string> {
+  const res = await fetch('/api/game/new', { method: 'POST' })
+  if (!res.ok) throw new Error(`Failed to create game: ${res.status}`)
+  const data = await res.json() as { id: string }
+  return data.id
 }
 
 function RulesPanel() {
@@ -44,6 +57,14 @@ function RulesPanel() {
         <li>Click any move in the move list to see the engine's recommended alternative</li>
       </ul>
 
+      <h4 style={section}>Multiplayer</h4>
+      <ul style={list}>
+        <li>Click the people icon in the topbar → "Create game"</li>
+        <li>Share the URL with a friend; they join as the opposite color</li>
+        <li>Real-time moves via a Cloudflare Durable Object — server validates every move</li>
+        <li>No accounts, no clocks. Resign or start a new game any time</li>
+      </ul>
+
       <h4 style={section}>Puzzles</h4>
       <ul style={list}>
         <li>1000 curated puzzles from Lichess, sorted by rating</li>
@@ -64,17 +85,30 @@ function RulesPanel() {
 }
 
 export default function App() {
-  const [mode, setMode] = useState<Mode>(getModeFromPath)
+  const initial = parseRoute()
+  const [mode, setMode] = useState<Mode>(initial.mode)
+  const [gameId, setGameId] = useState<string | null>(initial.gameId)
   const { settings, updateSettings } = useSettings()
   useApplySettings(settings)
 
   const navigate = useCallback((m: Mode) => {
     setMode(m)
+    setGameId(null)
     window.history.pushState(null, '', MODE_TO_PATH[m])
   }, [])
 
+  const loadGame = useCallback((id: string) => {
+    setMode('multiplayer')
+    setGameId(id)
+    window.history.pushState(null, '', `/g/${id}`)
+  }, [])
+
   useEffect(() => {
-    const onPop = () => setMode(getModeFromPath())
+    const onPop = () => {
+      const r = parseRoute()
+      setMode(r.mode)
+      setGameId(r.gameId)
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -87,6 +121,17 @@ export default function App() {
           rules={<RulesPanel />}
           actions={
             <>
+              <button
+                aria-label="Multiplayer"
+                className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
+                  mode === 'multiplayer'
+                    ? 'bg-[var(--ink)] text-[var(--paper)]'
+                    : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                }`}
+                onClick={() => navigate(mode === 'multiplayer' ? 'play' : 'multiplayer')}
+              >
+                <Users className="h-4 w-4" strokeWidth={1.7} />
+              </button>
               <button
                 aria-label="Puzzles"
                 className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
@@ -119,6 +164,15 @@ export default function App() {
         {mode === 'play' && <PlayTab settings={settings} updateSettings={updateSettings} />}
         {mode === 'puzzles' && (
           <PuzzleTab
+            flipped={settings.boardFlipped}
+            onFlip={() => updateSettings({ boardFlipped: !settings.boardFlipped })}
+          />
+        )}
+        {mode === 'multiplayer' && (
+          <MultiplayerTab
+            gameId={gameId}
+            onCreateGame={createGame}
+            onLoadGame={loadGame}
             flipped={settings.boardFlipped}
             onFlip={() => updateSettings({ boardFlipped: !settings.boardFlipped })}
           />

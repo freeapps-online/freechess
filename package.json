@@ -22,6 +22,7 @@
     "cf:preview": "pnpm build && wrangler pages deploy web/dist --branch preview"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260519.1",
     "wrangler": "^4.87.0"
   },
   "pnpm": {
@@ -29,5 +30,8 @@
       "brace-expansion@>=5.0.0 <5.0.6": ">=5.0.6",
       "ws@>=8.0.0 <8.20.1": ">=8.20.1"
     }
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0"
   }
 }

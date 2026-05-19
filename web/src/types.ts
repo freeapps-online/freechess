@@ -1,4 +1,4 @@
-export type Mode = 'play' | 'puzzles' | 'preferences'
+export type Mode = 'play' | 'puzzles' | 'multiplayer' | 'preferences'
 
 export interface Puzzle {
   id: string

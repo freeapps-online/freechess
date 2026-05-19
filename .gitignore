@@ -4,3 +4,4 @@ dist
 .vibe-check
 *.log
 .gstack/
+.wrangler/
