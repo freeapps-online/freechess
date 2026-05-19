@@ -2,8 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Chess, type Square } from 'chess.js'
 import { Board } from './Board.tsx'
 import { GameOverBanner } from './GameOverBanner.tsx'
+import { GameSummary } from './GameSummary.tsx'
+import { MoveList } from './MoveList.tsx'
 import { PlayerRow } from './PlayerRow.tsx'
-import type { GameStatus } from '../types.ts'
+import { analyzePlayerMove } from '../services/analysis.ts'
+import { findOpening } from '../services/openings.ts'
+import { buildPgn, copyToClipboard } from '../services/pgn.ts'
+import { stockfish } from '../services/stockfish.ts'
+import type { GameStatus, MoveAnalysis } from '../types.ts'
 
 type Color = 'w' | 'b'
 
@@ -29,7 +35,7 @@ interface MultiplayerTabProps {
 
 export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFlip }: MultiplayerTabProps) {
   const [chess] = useState(() => new Chess())
-  const [, setFen] = useState(chess.fen())
+  const [fen, setFen] = useState(chess.fen())
   const [yourColor, setYourColor] = useState<Color | 'spectator' | null>(null)
   const [opponentConnected, setOpponentConnected] = useState(false)
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null)
@@ -38,6 +44,11 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
   const [connectionState, setConnectionState] = useState<'idle' | 'connecting' | 'open' | 'closed' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  // Post-game review state
+  const [analyses, setAnalyses] = useState<Record<number, MoveAnalysis>>({})
+  const [reviewMoveIndex, setReviewMoveIndex] = useState<number | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeProgress, setAnalyzeProgress] = useState(0)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -169,8 +180,97 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
   }, [sendMessage])
 
   const handleRematch = useCallback(() => {
+    setAnalyses({})
+    setReviewMoveIndex(null)
+    setAnalyzing(false)
+    setAnalyzeProgress(0)
     sendMessage({ type: 'new_game' })
   }, [sendMessage])
+
+  // Run Stockfish-backed analysis on every move (skipping spectator games and
+  // already-analyzed moves). Runs serially through the move history; queue
+  // ordering is enforced by stockfish.ts so concurrent calls are safe.
+  const runAnalysis = useCallback(async () => {
+    if (yourColor !== 'w' && yourColor !== 'b') return
+    setAnalyzing(true)
+    setAnalyzeProgress(0)
+
+    // Make sure Stockfish is loaded; fall back to minimax via difficulty < 3
+    const useSF = await stockfish.init()
+
+    const replay = new Chess()
+    const moves = chess.history({ verbose: true })
+    let done = 0
+    for (let i = 0; i < moves.length; i++) {
+      const m = moves[i]
+      if (m.color === yourColor && !analyses[i]) {
+        try {
+          const analysis = await analyzePlayerMove(replay, m.san, yourColor, useSF ? 3 : 2)
+          setAnalyses(prev => ({ ...prev, [i]: analysis }))
+        } catch {
+          // Analysis can fail mid-game (Stockfish hiccup); just skip the move.
+        }
+      }
+      replay.move(m)
+      done++
+      setAnalyzeProgress(Math.round((done / moves.length) * 100))
+    }
+    setAnalyzing(false)
+  }, [chess, yourColor, analyses])
+
+  // Review helpers — same shape as PlayTab
+  const reviewFen = useMemo(() => {
+    if (reviewMoveIndex === null) return null
+    const replay = new Chess()
+    const moves = chess.history({ verbose: true })
+    for (let k = 0; k <= reviewMoveIndex && k < moves.length; k++) {
+      replay.move(moves[k])
+    }
+    return replay.fen()
+  }, [reviewMoveIndex, chess, fen])
+
+  const reviewLastMove = useMemo(() => {
+    if (reviewMoveIndex === null) return null
+    const moves = chess.history({ verbose: true })
+    const m = moves[reviewMoveIndex]
+    return m ? { from: m.from as Square, to: m.to as Square } : null
+  }, [reviewMoveIndex, chess, fen])
+
+  const inReview = reviewMoveIndex !== null
+  const exitReview = useCallback(() => setReviewMoveIndex(null), [])
+  const prevReview = useCallback(() => {
+    const len = chess.history().length
+    setReviewMoveIndex(i => i === null ? len - 1 : Math.max(0, i - 1))
+  }, [chess, fen])
+  const nextReview = useCallback(() => {
+    const len = chess.history().length
+    setReviewMoveIndex(i => {
+      if (i === null || i >= len - 1) return null
+      return i + 1
+    })
+  }, [chess, fen])
+
+  const opening = useMemo(() => findOpening(chess.history()), [chess, fen])
+
+  const [pgnCopied, setPgnCopied] = useState(false)
+  const exportPgn = useCallback(async () => {
+    const result =
+      gameOver?.reason === 'checkmate' ? (gameOver.winner === 'w' ? '1-0' : '0-1')
+      : gameOver?.reason === 'resigned' ? (gameOver.winner === 'w' ? '1-0' : '0-1')
+      : (gameOver?.reason === 'stalemate' || gameOver?.reason === 'draw') ? '1/2-1/2'
+      : '*'
+    const pgn = buildPgn(chess, {
+      event: 'Chess multiplayer',
+      white: yourColor === 'w' ? 'You' : 'Opponent',
+      black: yourColor === 'b' ? 'You' : 'Opponent',
+      result,
+    })
+    const ok = await copyToClipboard(pgn)
+    if (ok) {
+      setPgnCopied(true)
+      setTimeout(() => setPgnCopied(false), 1500)
+    }
+  }, [chess, gameOver, yourColor])
 
   const copyShareUrl = useCallback(async () => {
     if (!shareUrl) return
@@ -238,9 +338,11 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
             flipped={boardFlipped}
             playerColor={isPlayer ? yourColor : 'w'}
             onMove={handleMove}
-            lastMove={lastMove}
-            selectedSquare={selectedSquare}
+            lastMove={inReview ? reviewLastMove : lastMove}
+            selectedSquare={inReview ? null : selectedSquare}
             onSquareClick={(sq) => setSelectedSquare(sq)}
+            previewFen={inReview ? reviewFen : null}
+            previewLabel={inReview ? `Move ${Math.floor((reviewMoveIndex ?? 0) / 2) + 1}${(reviewMoveIndex ?? 0) % 2 === 0 ? '' : '...'}` : ''}
           />
         </div>
 
@@ -312,15 +414,89 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
           onPlayAgain={handleRematch}
         />
 
-        <div className="rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3 text-xs">
-          <div className="mb-1 font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Move list</div>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--ink)]">
-            {chess.history().map((san, i) => (
-              <span key={i}>
-                {i % 2 === 0 && <span className="text-[var(--muted)]">{Math.floor(i / 2) + 1}.</span>} {san}
-              </span>
-            ))}
+        {/* Post-game review CTA. Shown when game is over and not yet analyzed. */}
+        {gameOver && isPlayer && Object.keys(analyses).length === 0 && !analyzing && (
+          <button
+            type="button"
+            onClick={runAnalysis}
+            className="rounded-[0.75rem] border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+          >
+            Analyze game · review your moves
+          </button>
+        )}
+
+        {analyzing && (
+          <div className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass-soft)] px-3 py-2 text-sm">
+            <div className="mb-1 text-[var(--muted)]">Analyzing... {analyzeProgress}%</div>
+            <div className="h-1 overflow-hidden rounded-full bg-[var(--glass)]">
+              <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${analyzeProgress}%` }} />
+            </div>
           </div>
+        )}
+
+        {Object.keys(analyses).length > 0 && isPlayer && (
+          <GameSummary
+            analyses={analyses}
+            history={chess.history()}
+            playerColor={yourColor as 'w' | 'b'}
+            onReviewMove={(idx) => setReviewMoveIndex(idx)}
+          />
+        )}
+
+        {gameOver && chess.history().length > 0 && (
+          <button
+            type="button"
+            onClick={exportPgn}
+            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
+          >
+            {pgnCopied ? 'PGN copied ✓' : 'Copy PGN'}
+          </button>
+        )}
+
+        <div className="rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3">
+          {opening && (
+            <div className="mb-2 flex items-baseline gap-2 border-b border-[var(--line)] pb-2">
+              <span className="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Opening</span>
+              <span className="text-xs font-semibold text-[var(--ink)]">{opening}</span>
+            </div>
+          )}
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">
+              {inReview ? `Reviewing move ${Math.floor((reviewMoveIndex ?? 0) / 2) + 1}${(reviewMoveIndex ?? 0) % 2 === 0 ? ' (white)' : ' (black)'}` : 'Moves'}
+            </div>
+            {chess.history().length > 0 && (
+              <div className="flex gap-0.5">
+                <button
+                  type="button"
+                  onClick={prevReview}
+                  disabled={reviewMoveIndex === 0}
+                  className="rounded-[0.25rem] border border-[var(--line)] bg-[var(--glass)] px-2 py-0.5 text-xs font-mono text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-30"
+                  title="Previous move"
+                >‹</button>
+                <button
+                  type="button"
+                  onClick={nextReview}
+                  disabled={!inReview}
+                  className="rounded-[0.25rem] border border-[var(--line)] bg-[var(--glass)] px-2 py-0.5 text-xs font-mono text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-30"
+                  title="Next move"
+                >›</button>
+                {inReview && (
+                  <button
+                    type="button"
+                    onClick={exitReview}
+                    className="rounded-[0.25rem] border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                    title="Exit review, return to live game"
+                  >Live</button>
+                )}
+              </div>
+            )}
+          </div>
+          <MoveList
+            history={chess.history()}
+            analyses={analyses}
+            activeReviewMove={reviewMoveIndex}
+            onJumpToMove={(idx) => setReviewMoveIndex(idx)}
+          />
         </div>
       </div>
     </div>

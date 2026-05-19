@@ -14,6 +14,7 @@ import { stockfish } from '../services/stockfish.ts'
 import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../services/analysis.ts'
 import { parseVoiceMove } from '../services/voiceMoves.ts'
 import { findOpening } from '../services/openings.ts'
+import { buildPgn, copyToClipboard } from '../services/pgn.ts'
 import { speech } from '../services/speech.ts'
 import { useSound } from '@freegamestore/games'
 import { useSpeech } from '../hooks.ts'
@@ -297,6 +298,24 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
   const history = chess.history()
   const boardFlipped = settings.boardFlipped !== (playerColor === 'b')
   const opening = useMemo(() => findOpening(history), [history.join(' ')])
+  const [pgnCopied, setPgnCopied] = useState(false)
+  const exportPgn = useCallback(async () => {
+    const result =
+      chess.isCheckmate() ? (chess.turn() === 'w' ? '0-1' : '1-0')
+      : (chess.isStalemate() || chess.isDraw()) ? '1/2-1/2'
+      : '*'
+    const pgn = buildPgn(chess, {
+      event: `Chess vs ${DIFFICULTY_LABELS[settings.difficulty]}`,
+      white: playerColor === 'w' ? 'You' : `Engine (${DIFFICULTY_LABELS[settings.difficulty]})`,
+      black: playerColor === 'b' ? 'You' : `Engine (${DIFFICULTY_LABELS[settings.difficulty]})`,
+      result,
+    })
+    const ok = await copyToClipboard(pgn)
+    if (ok) {
+      setPgnCopied(true)
+      setTimeout(() => setPgnCopied(false), 1500)
+    }
+  }, [chess, settings.difficulty, playerColor])
 
   // Review-mode helpers: compute the position after a given move index
   const reviewFen = useMemo(() => {
@@ -430,6 +449,16 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
             playerColor={playerColor}
             onReviewMove={(idx) => setReviewMoveIndex(idx)}
           />
+        )}
+
+        {gameStatus !== 'playing' && history.length > 0 && (
+          <button
+            type="button"
+            onClick={exportPgn}
+            className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--ink)]"
+          >
+            {pgnCopied ? 'PGN copied ✓' : 'Copy PGN'}
+          </button>
         )}
 
         <div className="rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3">
