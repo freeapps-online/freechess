@@ -121,9 +121,12 @@ export function describeMoveSpoken(san: string, color: 'w' | 'b'): string {
   }
 
   const isCapture = clean.includes('x')
-  const parts = clean.slice(i).replace('x', '')
+  // Strip promotion suffix (=Q etc) BEFORE locating the destination square,
+  // otherwise pawn capture-promotion like "exd8=Q" treats "=Q" as the target.
+  const beforePromo = clean.split('=')[0]
+  const parts = beforePromo.slice(i).replace('x', '')
 
-  // Get the destination square
+  // Get the destination square (last 2 chars after stripping prefix and 'x')
   const target = parts.slice(-2)
 
   if (isCapture) {
@@ -139,8 +142,7 @@ export function describeMoveSpoken(san: string, color: 'w' | 'b'): string {
     }
   }
 
-  if (san.includes('#')) desc += '. Checkmate!'
-  else if (san.includes('+')) desc += '. Check!'
-
+  if (san.includes('#')) return desc + '. Checkmate!'
+  if (san.includes('+')) return desc + '. Check!'
   return desc + '.'
 }
