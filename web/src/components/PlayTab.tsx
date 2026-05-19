@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Chess, type Square } from 'chess.js'
 import { Board } from './Board.tsx'
 import { MoveList } from './MoveList.tsx'
@@ -7,11 +7,13 @@ import { PlayerRow } from './PlayerRow.tsx'
 import { GameControls } from './GameControls.tsx'
 import { DifficultyColorPicker } from './DifficultyColorPicker.tsx'
 import { GameOverBanner } from './GameOverBanner.tsx'
+import { GameSummary } from './GameSummary.tsx'
 import { VoiceInstructions } from './VoiceInstructions.tsx'
 import { findBestMove, evaluatePosition, findBestMoveSF, evaluatePositionSF, shouldUseStockfish } from '../services/engine.ts'
 import { stockfish } from '../services/stockfish.ts'
 import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../services/analysis.ts'
 import { parseVoiceMove } from '../services/voiceMoves.ts'
+import { findOpening } from '../services/openings.ts'
 import { speech } from '../services/speech.ts'
 import { useSound } from '@freegamestore/games'
 import { useSpeech } from '../hooks.ts'
@@ -44,6 +46,8 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
     bestFrom: Square
     bestTo: Square
   } | null>(null)
+  // Review mode: null = live game, number = show position after move N
+  const [reviewMoveIndex, setReviewMoveIndex] = useState<number | null>(null)
   const [coaching, setCoaching] = useState<string | null>(null)
   const [gameStatus, setGameStatus] = useState<GameStatus>('playing')
   const [thinking, setThinking] = useState(false)
@@ -292,6 +296,37 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
 
   const history = chess.history()
   const boardFlipped = settings.boardFlipped !== (playerColor === 'b')
+  const opening = useMemo(() => findOpening(history), [history.join(' ')])
+
+  // Review-mode helpers: compute the position after a given move index
+  const reviewFen = useMemo(() => {
+    if (reviewMoveIndex === null) return null
+    const replay = new Chess()
+    const moves = chess.history({ verbose: true })
+    for (let k = 0; k <= reviewMoveIndex && k < moves.length; k++) {
+      replay.move(moves[k])
+    }
+    return replay.fen()
+  }, [reviewMoveIndex, chess, fen])
+
+  const reviewLastMove = useMemo(() => {
+    if (reviewMoveIndex === null) return null
+    const moves = chess.history({ verbose: true })
+    const m = moves[reviewMoveIndex]
+    return m ? { from: m.from as Square, to: m.to as Square } : null
+  }, [reviewMoveIndex, chess, fen])
+
+  const inReview = reviewMoveIndex !== null
+  const exitReview = useCallback(() => setReviewMoveIndex(null), [])
+  const prevReview = useCallback(() => {
+    setReviewMoveIndex(i => i === null ? history.length - 1 : Math.max(0, i - 1))
+  }, [history.length])
+  const nextReview = useCallback(() => {
+    setReviewMoveIndex(i => {
+      if (i === null || i >= history.length - 1) return null
+      return i + 1
+    })
+  }, [history.length])
 
   const opponentBadge = thinking
     ? <span className="ml-auto text-xs text-[var(--muted)] animate-pulse">Thinking...</span>
@@ -334,11 +369,12 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
               flipped={boardFlipped}
               playerColor={playerColor}
               onMove={handleMove}
-              lastMove={lastMove}
-              selectedSquare={alternativePreview ? null : selectedSquare}
+              lastMove={inReview ? reviewLastMove : lastMove}
+              selectedSquare={(inReview || alternativePreview) ? null : selectedSquare}
               onSquareClick={(sq) => { setAlternativePreview(null); setSelectedSquare(sq) }}
-              previewFen={alternativePreview?.fen ?? null}
-              previewArrow={alternativePreview ? { from: alternativePreview.bestFrom, to: alternativePreview.bestTo } : null}
+              previewFen={inReview ? reviewFen : (alternativePreview?.fen ?? null)}
+              previewArrow={alternativePreview && !inReview ? { from: alternativePreview.bestFrom, to: alternativePreview.bestTo } : null}
+              previewLabel={inReview ? `Move ${Math.floor((reviewMoveIndex ?? 0) / 2) + 1}${(reviewMoveIndex ?? 0) % 2 === 0 ? '' : '...'}` : 'Best alternative'}
             />
           </div>
         </div>
@@ -387,12 +423,59 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
           onPlayAgain={resetGame}
         />
 
+        {gameStatus !== 'playing' && Object.keys(analyses).length > 0 && (
+          <GameSummary
+            analyses={analyses}
+            history={history}
+            playerColor={playerColor}
+            onReviewMove={(idx) => setReviewMoveIndex(idx)}
+          />
+        )}
+
         <div className="rounded-[1rem] border border-[var(--line)] bg-[var(--glass-soft)] p-3">
-          <div className="mb-2 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Moves</div>
+          {opening && (
+            <div className="mb-2 flex items-baseline gap-2 border-b border-[var(--line)] pb-2">
+              <span className="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Opening</span>
+              <span className="text-xs font-semibold text-[var(--ink)]">{opening}</span>
+            </div>
+          )}
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">
+              {inReview ? `Reviewing move ${Math.floor((reviewMoveIndex ?? 0) / 2) + 1}${(reviewMoveIndex ?? 0) % 2 === 0 ? ' (white)' : ' (black)'}` : 'Moves'}
+            </div>
+            {history.length > 0 && (
+              <div className="flex gap-0.5">
+                <button
+                  type="button"
+                  onClick={prevReview}
+                  disabled={reviewMoveIndex === 0}
+                  className="rounded-[0.25rem] border border-[var(--line)] bg-[var(--glass)] px-2 py-0.5 text-xs font-mono text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-30"
+                  title="Previous move"
+                >‹</button>
+                <button
+                  type="button"
+                  onClick={nextReview}
+                  disabled={!inReview}
+                  className="rounded-[0.25rem] border border-[var(--line)] bg-[var(--glass)] px-2 py-0.5 text-xs font-mono text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-30"
+                  title="Next move"
+                >›</button>
+                {inReview && (
+                  <button
+                    type="button"
+                    onClick={exitReview}
+                    className="rounded-[0.25rem] border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                    title="Exit review, return to live game"
+                  >Live</button>
+                )}
+              </div>
+            )}
+          </div>
           <MoveList
             history={history}
             analyses={analyses}
             activeAlternative={alternativePreview?.moveIndex ?? null}
+            activeReviewMove={reviewMoveIndex}
+            onJumpToMove={(idx) => { setAlternativePreview(null); setReviewMoveIndex(idx) }}
             onShowAlternative={(moveIndex, analysis) => {
               if (alternativePreview?.moveIndex === moveIndex) {
                 setAlternativePreview(null)

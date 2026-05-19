@@ -20,9 +20,12 @@ interface BoardProps {
   onSquareClick?: (sq: Square | null) => void
   previewFen?: string | null
   previewArrow?: { from: Square; to: Square } | null
+  // Label shown in the blue banner over a preview. Defaults to "Best alternative".
+  // Pass an empty string to hide the banner entirely.
+  previewLabel?: string
 }
 
-export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedSquare, onSquareClick, previewFen, previewArrow }: BoardProps) {
+export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedSquare, onSquareClick, previewFen, previewArrow, previewLabel = 'Best alternative' }: BoardProps) {
   const [dragFrom, setDragFrom] = useState<Square | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
 
@@ -285,12 +288,12 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         })()}
 
         {/* Preview overlay label */}
-        {isPreview && (
+        {isPreview && previewLabel && (
           <rect x={0} y={0} width={800} height={32} fill="rgba(85, 160, 255, 0.85)" rx={0} style={{ pointerEvents: 'none' }} />
         )}
-        {isPreview && (
+        {isPreview && previewLabel && (
           <text x={400} y={22} textAnchor="middle" fontSize={14} fontWeight={700} fill="white" style={{ pointerEvents: 'none' }}>
-            Best alternative
+            {previewLabel}
           </text>
         )}
 

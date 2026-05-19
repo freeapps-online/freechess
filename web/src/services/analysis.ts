@@ -3,11 +3,66 @@ import type { MoveAnalysis } from '../types.ts'
 import { evaluateMove, evaluateMoveSF, shouldUseStockfish } from './engine.ts'
 import type { Difficulty } from '../types.ts'
 
+const PIECE_POINTS: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 }
+const PIECE_NAMES: Record<string, string> = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' }
+
+// "Solid move" gets boring fast — vary the praise based on detectable move features.
+function goodMoveText(_chess: Chess, moveSan: string, moveObj: { from: string; to: string; piece: string; captured?: string } | undefined): string {
+  if (!moveObj) return "Solid move."
+  const center = new Set(['d4', 'd5', 'e4', 'e5'])
+  const extendedCenter = new Set(['c3', 'c4', 'c5', 'c6', 'd3', 'd6', 'e3', 'e6', 'f3', 'f4', 'f5', 'f6'])
+
+  if (moveObj.captured) {
+    const pts = PIECE_POINTS[moveObj.captured] ?? 0
+    const name = PIECE_NAMES[moveObj.captured] ?? 'piece'
+    return `Captures a ${name} (${pts} point${pts === 1 ? '' : 's'}).`
+  }
+  if (moveSan === 'O-O') return 'Castles kingside — king safety secured.'
+  if (moveSan === 'O-O-O') return 'Castles queenside — king safety secured.'
+
+  // Development: minor piece moves off its home rank
+  const fromRank = parseInt(moveObj.from[1])
+  const isDevelopment = (moveObj.piece === 'n' || moveObj.piece === 'b') && (fromRank === 1 || fromRank === 8)
+  if (isDevelopment) {
+    const name = PIECE_NAMES[moveObj.piece]
+    return `Develops the ${name}.`
+  }
+
+  if (center.has(moveObj.to)) return 'Stakes a claim in the center.'
+  if (extendedCenter.has(moveObj.to)) return 'Improves central control.'
+
+  return 'Solid move.'
+}
+
+// Brilliant criteria: best move AND a real sacrifice (piece can be captured for less material)
+// AND the position is winning. Otherwise just "best move".
+function isBrilliantSacrifice(chessBefore: Chess, moveSan: string, evalAfterFromMover: number): boolean {
+  if (evalAfterFromMover < 200) return false  // not winning enough to call brilliant
+  const clone = new Chess(chessBefore.fen())
+  const m = clone.move(moveSan)
+  if (!m) return false
+  // Did the moving piece land on a square attacked by the opponent?
+  // chess.js doesn't expose isAttacked directly — heuristically check if any opponent move targets it.
+  const opponentMoves = clone.moves({ verbose: true })
+  const attacked = opponentMoves.some(om => om.to === m.to)
+  if (!attacked) return false
+  // Is there a cheaper attacker than the moved piece?
+  const movedValue = PIECE_POINTS[m.piece] ?? 99
+  for (const om of opponentMoves) {
+    if (om.to !== m.to) continue
+    const attackerValue = PIECE_POINTS[om.piece] ?? 99
+    if (attackerValue < movedValue) return true
+  }
+  return false
+}
+
 export async function analyzePlayerMove(chess: Chess, moveSan: string, playerColor: 'w' | 'b', difficulty: Difficulty = 2): Promise<MoveAnalysis> {
   const useSF = shouldUseStockfish(difficulty)
-  const { evalAfter, bestMove, bestEval } = useSF
+  const result = useSF
     ? await evaluateMoveSF(chess, moveSan)
     : evaluateMove(chess, moveSan)
+  const { evalAfter, bestMove, bestEval } = result
+  const punishment: string | null = useSF ? (result as { punishment: string | null }).punishment : null
 
   // Calculate evaluation swing from the player's perspective
   const sign = playerColor === 'w' ? 1 : -1
@@ -15,52 +70,55 @@ export async function analyzePlayerMove(chess: Chess, moveSan: string, playerCol
   const bestMoveEval = bestEval * sign
   const diff = bestMoveEval - moveEval  // how much worse is this move vs best
 
+  const moveObj = chess.moves({ verbose: true }).find(m => m.san === moveSan)
+
   let category: MoveAnalysis['category']
   let explanation: string
 
   if (diff <= 0) {
-    category = 'brilliant'
-    explanation = "Excellent move! This is the best or even better than expected."
+    // Best move. Is it actually brilliant (sacrifice + winning), or just the right move?
+    if (isBrilliantSacrifice(chess, moveSan, moveEval)) {
+      category = 'brilliant'
+      explanation = 'Brilliant! A sacrifice that wins.'
+    } else {
+      category = 'good'
+      explanation = goodMoveText(chess, moveSan, moveObj)
+    }
   } else if (diff < 30) {
     category = 'great'
-    explanation = "Great move! Very close to the best option."
+    explanation = 'Great move. Very close to the engine\'s pick.'
   } else if (diff < 80) {
     category = 'good'
-    explanation = "Solid move. A reasonable choice in this position."
+    explanation = goodMoveText(chess, moveSan, moveObj)
   } else if (diff < 180) {
     category = 'inaccuracy'
     explanation = bestMove
-      ? `An inaccuracy. ${bestMove} was slightly better here.`
-      : "A small inaccuracy. There was a slightly better option."
+      ? `An inaccuracy. ${bestMove} was a bit stronger.`
+      : 'A small inaccuracy.'
   } else if (diff < 400) {
     category = 'mistake'
-    explanation = bestMove
-      ? `A mistake! ${bestMove} was much better. You lost about ${Math.round(diff / 100)} pawns of advantage.`
-      : `A mistake. This costs about ${Math.round(diff / 100)} pawns of advantage.`
+    const pawns = Math.round(diff / 100)
+    const base = bestMove
+      ? `Mistake. ${bestMove} was better — this drops about ${pawns} pawn${pawns === 1 ? '' : 's'}.`
+      : `Mistake. This drops about ${pawns} pawn${pawns === 1 ? '' : 's'}.`
+    explanation = punishment ? `${base} Opponent's best reply: ${punishment}.` : base
   } else {
     category = 'blunder'
-    explanation = bestMove
-      ? `A blunder! ${bestMove} was the right move. This loses significant material or position.`
-      : "A serious blunder that loses significant material or position."
+    const base = bestMove
+      ? `Blunder! ${bestMove} was the right move.`
+      : 'Serious blunder.'
+    explanation = punishment ? `${base} Opponent now plays ${punishment} for a winning advantage.` : base
   }
 
-  // Add tactical context
+  // Override with checkmate
   const clone = new Chess(chess.fen())
   clone.move(moveSan)
 
   if (clone.isCheckmate()) {
     category = 'brilliant'
-    explanation = "Checkmate! Brilliant finish!"
-  } else if (clone.isCheck()) {
-    if (category === 'good' || category === 'great') {
-      explanation += " The check adds pressure."
-    }
-  }
-
-  // Detect if the move captures material
-  const moveObj = chess.moves({ verbose: true }).find(m => m.san === moveSan)
-  if (moveObj?.captured && category === 'good') {
-    explanation = "Good capture, winning material."
+    explanation = 'Checkmate! Beautiful finish.'
+  } else if (clone.isCheck() && (category === 'good' || category === 'great')) {
+    explanation += ' Check.'
   }
 
   return {

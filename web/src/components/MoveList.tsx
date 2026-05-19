@@ -6,6 +6,10 @@ interface MoveListProps {
   analyses: Record<number, MoveAnalysis>
   onShowAlternative?: (moveIndex: number, analysis: MoveAnalysis) => void
   activeAlternative?: number | null
+  // Optional review-mode props. When onJumpToMove is provided, move cells
+  // become clickable and the one at activeReviewMove (if any) is highlighted.
+  onJumpToMove?: (moveIndex: number) => void
+  activeReviewMove?: number | null
 }
 
 const CATEGORY_COLORS: Record<MoveAnalysis['category'], string> = {
@@ -44,7 +48,7 @@ const CATEGORY_LABELS: Record<MoveAnalysis['category'], string> = {
   blunder: 'Blunder',
 }
 
-export function MoveList({ history, analyses, onShowAlternative, activeAlternative }: MoveListProps) {
+export function MoveList({ history, analyses, onShowAlternative, activeAlternative, onJumpToMove, activeReviewMove }: MoveListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -71,8 +75,8 @@ export function MoveList({ history, analyses, onShowAlternative, activeAlternati
     entries.push(
       <div key={`move-${moveNum}`} className="flex items-baseline gap-1.5 py-0.5">
         <span className="w-6 text-right text-[var(--muted)] text-xs shrink-0 font-mono">{moveNum}.</span>
-        <MoveCell move={white} analysis={whiteAnalysis} />
-        {black && <MoveCell move={black} analysis={blackAnalysis} />}
+        <MoveCell move={white} analysis={whiteAnalysis} onClick={onJumpToMove ? () => onJumpToMove(i) : undefined} active={activeReviewMove === i} />
+        {black && <MoveCell move={black} analysis={blackAnalysis} onClick={onJumpToMove ? () => onJumpToMove(i + 1) : undefined} active={activeReviewMove === i + 1} />}
       </div>
     )
 
@@ -107,12 +111,25 @@ export function MoveList({ history, analyses, onShowAlternative, activeAlternati
   )
 }
 
-function MoveCell({ move, analysis }: { move: string; analysis?: MoveAnalysis }) {
+function MoveCell({ move, analysis, onClick, active }: { move: string; analysis?: MoveAnalysis; onClick?: () => void; active?: boolean }) {
   const color = analysis ? CATEGORY_COLORS[analysis.category] : ''
   const symbol = analysis ? CATEGORY_SYMBOLS[analysis.category] : ''
+  const activeStyle = active ? 'bg-[var(--accent)]/15 rounded-[0.25rem]' : ''
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-16 text-left text-sm font-mono font-semibold px-1 ${color} ${activeStyle} hover:bg-[var(--glass-hover)] rounded-[0.25rem]`}
+      >
+        {move}{symbol}
+      </button>
+    )
+  }
 
   return (
-    <span className={`w-16 text-sm font-mono font-semibold ${color}`}>
+    <span className={`w-16 text-sm font-mono font-semibold px-1 ${color} ${activeStyle}`}>
       {move}{symbol}
     </span>
   )

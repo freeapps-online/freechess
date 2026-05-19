@@ -274,7 +274,7 @@ export async function evaluatePositionSF(chess: Chess): Promise<number> {
 export async function evaluateMoveSF(
   chessBefore: Chess,
   moveSan: string
-): Promise<{ evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number }> {
+): Promise<{ evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number; punishment: string | null }> {
   // Evaluate position before the move to get best move + eval
   const beforeResult = await stockfish.evaluate(chessBefore.fen(), 10)
   const evalBefore = chessBefore.turn() === 'w' ? beforeResult.score : -beforeResult.score
@@ -291,11 +291,22 @@ export async function evaluateMoveSF(
     if (match) bestMoveSan = match.san
   }
 
-  // Evaluate after the player's actual move
+  // Evaluate after the player's actual move. afterResult.bestMove is the opponent's
+  // best reply — the "punishment" if the player just blundered.
   const cloneActual = new Chess(chessBefore.fen())
   cloneActual.move(moveSan)
   const afterResult = await stockfish.evaluate(cloneActual.fen(), 10)
   const evalAfter = cloneActual.turn() === 'w' ? afterResult.score : -afterResult.score
+
+  let punishment: string | null = null
+  if (afterResult.bestMove) {
+    const from = afterResult.bestMove.slice(0, 2)
+    const to = afterResult.bestMove.slice(2, 4)
+    const promo = afterResult.bestMove.length > 4 ? afterResult.bestMove[4] : undefined
+    const legal = cloneActual.moves({ verbose: true })
+    const match = legal.find(m => m.from === from && m.to === to && (!promo || m.promotion === promo))
+    if (match) punishment = match.san
+  }
 
   // Evaluate after the best move (for accurate diff)
   if (bestMoveSan && bestMoveSan !== moveSan) {
@@ -307,15 +318,16 @@ export async function evaluateMoveSF(
       evalAfter,
       bestMove: bestMoveSan,
       bestEval: cloneBest.turn() === 'w' ? bestResult.score : -bestResult.score,
+      punishment,
     }
   }
 
-  return { evalBefore, evalAfter, bestMove: bestMoveSan, bestEval: evalAfter }
+  return { evalBefore, evalAfter, bestMove: bestMoveSan, bestEval: evalAfter, punishment }
 }
 
 // --- Minimax-only functions (sync, for difficulty 1-2) ---
 
-export function evaluateMove(chess: Chess, moveSan: string): { evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number } {
+export function evaluateMove(chess: Chess, moveSan: string): { evalBefore: number; evalAfter: number; bestMove: string | null; bestEval: number; punishment: null } {
   const evalBefore = evaluate(chess)
 
   // Find the best move before this move was made
@@ -339,5 +351,5 @@ export function evaluateMove(chess: Chess, moveSan: string): { evalBefore: numbe
   const evalAfter = evaluate(chess)
   chess.undo()
 
-  return { evalBefore, evalAfter, bestMove, bestEval }
+  return { evalBefore, evalAfter, bestMove, bestEval, punishment: null }
 }
