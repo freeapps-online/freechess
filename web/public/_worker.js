@@ -60,16 +60,22 @@ export class GameDO extends DurableObject {
     const player = this.players.find(p => p.ws === ws)
     if (!player) return this.send(ws, { type: 'error', message: 'Spectators cannot move' })
 
+    // Send the player a fresh state snapshot so they can roll back an optimistic move.
+    const reject = (message) => {
+      this.send(ws, { type: 'error', message })
+      this.sendState(ws, player.color)
+    }
+
     if (msg.type === 'move') {
-      if (this.gameOver) return this.send(ws, { type: 'error', message: 'Game is over' })
-      if (this.chess.turn() !== player.color) return this.send(ws, { type: 'error', message: 'Not your turn' })
+      if (this.gameOver) return reject('Game is over')
+      if (this.chess.turn() !== player.color) return reject('Not your turn')
 
       const from = msg.uci.slice(0, 2)
       const to = msg.uci.slice(2, 4)
       const promotion = msg.uci.length > 4 ? msg.uci[4] : undefined
       let move
-      try { move = this.chess.move({ from, to, promotion }) } catch { return this.send(ws, { type: 'error', message: 'Illegal move' }) }
-      if (!move) return this.send(ws, { type: 'error', message: 'Illegal move' })
+      try { move = this.chess.move({ from, to, promotion }) } catch { return reject('Illegal move') }
+      if (!move) return reject('Illegal move')
 
       this.computeGameOver()
       this.broadcast({
@@ -120,6 +126,17 @@ export class GameDO extends DurableObject {
 
   send(ws, msg) {
     try { ws.send(JSON.stringify(msg)) } catch {}
+  }
+
+  sendState(ws, yourColor) {
+    this.send(ws, {
+      type: 'state',
+      fen: this.chess.fen(),
+      history: this.chess.history(),
+      yourColor,
+      opponentConnected: this.players.length === 2,
+      gameOver: this.gameOver,
+    })
   }
 
   broadcast(msg, except) {

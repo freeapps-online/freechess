@@ -109,7 +109,9 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
           chess.reset()
           setFen(chess.fen())
           setLastMove(null)
+          setSelectedSquare(null)
           setGameOver(null)
+          setError(null)
         } else if (msg.type === 'error') {
           setError(msg.message ?? 'Server error')
         }
