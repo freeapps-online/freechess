@@ -51,7 +51,7 @@ export default defineConfig({
         short_name: 'Chess',
         description: 'Chess — free forever',
         start_url: '/',
-        display: 'standalone', orientation: 'any', min_viewport_width: 360,
+        display: 'standalone', orientation: 'any',
         background_color: '#0f0f0f',
         theme_color: '#10b981',
         icons: [
