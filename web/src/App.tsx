@@ -24,6 +24,45 @@ function getModeFromPath(): Mode {
   return PATH_TO_MODE[window.location.pathname] ?? 'play'
 }
 
+function RulesPanel() {
+  const section = { marginTop: '0.75rem', fontWeight: 700 }
+  const list = { margin: '0.25rem 0 0 1.1rem', paddingLeft: 0, listStyleType: 'disc' as const }
+  return (
+    <div style={{ lineHeight: 1.55 }}>
+      <h3 style={{ fontWeight: 700, fontSize: '1.05rem' }}>Chess</h3>
+      <p style={{ marginTop: '0.25rem' }}>
+        Play against the engine, train with puzzles, control by voice.
+      </p>
+
+      <h4 style={section}>Playing</h4>
+      <ul style={list}>
+        <li>Tap a piece, then tap a destination to move</li>
+        <li>Drag and drop works too</li>
+        <li>Choose your color (White or Black) and difficulty (1 = Beginner, 5 = Stockfish Max)</li>
+        <li>Undo takes back your move and the engine's reply</li>
+        <li>Eval bar on the left shows position advantage</li>
+        <li>Click any move in the move list to see the engine's recommended alternative</li>
+      </ul>
+
+      <h4 style={section}>Puzzles</h4>
+      <ul style={list}>
+        <li>1000 curated puzzles from Lichess, sorted by rating</li>
+        <li>Solve the position with the strongest move; wrong moves revert</li>
+        <li>"Today's Puzzle" pulls Lichess's daily puzzle live</li>
+        <li>Hint highlights the correct piece</li>
+        <li>Progress saved locally on this device</li>
+      </ul>
+
+      <h4 style={section}>Voice control</h4>
+      <ul style={list}>
+        <li>Toggle the "Mic Off" button to enable</li>
+        <li>Say moves like "e4", "knight to f3", "bishop c4", "castle kingside"</li>
+        <li>"Undo", "new game", or "resign" also work</li>
+      </ul>
+    </div>
+  )
+}
+
 export default function App() {
   const [mode, setMode] = useState<Mode>(getModeFromPath)
   const { settings, updateSettings } = useSettings()
@@ -45,7 +84,7 @@ export default function App() {
       topbar={
         <GameTopbar
           title="Chess"
-          rules={<div><h3 style={{fontWeight:700}}>Chess</h3><h4 style={{fontWeight:600}}>Controls</h4><ul><li>Tap a piece to select, tap destination to move</li><li>Flip board, undo moves</li><li>Voice control available</li></ul><h4 style={{fontWeight:600}}>Rules</h4><ul><li>Play against the engine</li><li>Six difficulty levels (beginner to Stockfish)</li><li>Eval bar shows position advantage</li></ul></div>}
+          rules={<RulesPanel />}
           actions={
             <>
               <button
