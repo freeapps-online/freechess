@@ -5,15 +5,23 @@ interface GameControlsProps {
   onFlip: () => void
   onResign?: () => void
   canResign?: boolean
+  onHint?: () => void
+  canHint?: boolean
+  hintLoading?: boolean
   microphoneOn: boolean
   onToggleMic: () => void
 }
 
-export function GameControls({ onNewGame, onUndo, canUndo, onFlip, onResign, canResign, microphoneOn, onToggleMic }: GameControlsProps) {
+export function GameControls({ onNewGame, onUndo, canUndo, onFlip, onResign, canResign, onHint, canHint, hintLoading, microphoneOn, onToggleMic }: GameControlsProps) {
   return (
     <div className="flex gap-1.5 landscape:gap-1 overflow-x-auto shrink-0">
       <ControlButton onClick={onNewGame}>New Game</ControlButton>
       <ControlButton onClick={onUndo} disabled={!canUndo}>Undo</ControlButton>
+      {onHint && (
+        <ControlButton onClick={onHint} disabled={!canHint || hintLoading}>
+          {hintLoading ? 'Hint…' : 'Hint'}
+        </ControlButton>
+      )}
       <ControlButton onClick={onFlip}>Flip</ControlButton>
       {onResign && (
         <button

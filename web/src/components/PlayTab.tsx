@@ -308,6 +308,25 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
     if (!muted) speech.speak('You resigned.')
   }, [gameStatus, !muted])
 
+  const [hintArrow, setHintArrow] = useState<{ from: Square; to: Square } | null>(null)
+  const [hintLoading, setHintLoading] = useState(false)
+  const requestHint = useCallback(async () => {
+    if (!isPlayerTurn || hintLoading) return
+    setHintLoading(true)
+    try {
+      // Prefer Stockfish for stronger hints; fall back to minimax.
+      const move = sfReady
+        ? await findBestMoveSF(chess, Math.max(settings.difficulty, 3) as Difficulty)
+        : findBestMove(chess, Math.max(settings.difficulty, 2) as Difficulty)
+      if (move) setHintArrow({ from: move.from, to: move.to })
+    } finally {
+      setHintLoading(false)
+    }
+  }, [chess, isPlayerTurn, hintLoading, sfReady, settings.difficulty])
+
+  // Any change in board position clears the hint arrow.
+  useEffect(() => { setHintArrow(null) }, [fen])
+
   const flipBoard = useCallback(() => {
     updateSettings({ boardFlipped: !settings.boardFlipped })
   }, [settings.boardFlipped, updateSettings])
@@ -425,6 +444,7 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
               previewFen={inReview ? reviewFen : (alternativePreview?.fen ?? null)}
               previewArrow={alternativePreview && !inReview ? { from: alternativePreview.bestFrom, to: alternativePreview.bestTo } : null}
               previewLabel={inReview ? `Move ${Math.floor((reviewMoveIndex ?? 0) / 2) + 1}${(reviewMoveIndex ?? 0) % 2 === 0 ? '' : '...'}` : 'Best alternative'}
+              liveArrow={!inReview && !alternativePreview ? hintArrow : null}
             />
           </div>
         </div>
@@ -452,6 +472,9 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
           onFlip={flipBoard}
           onResign={handleResign}
           canResign={gameStatus === 'playing' && history.length > 0}
+          onHint={requestHint}
+          canHint={isPlayerTurn}
+          hintLoading={hintLoading}
           microphoneOn={settings.microphone}
           onToggleMic={() => updateSettings({ microphone: !settings.microphone })}
         />
