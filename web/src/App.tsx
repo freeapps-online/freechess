@@ -1,19 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GameShell, GameTopbar, GameAuth } from '@freegamestore/games'
-import { Settings2 } from 'lucide-react'
+import { Puzzle as PuzzleIcon, Settings2 } from 'lucide-react'
 import { useApplySettings, useSettings } from './hooks.ts'
 import { PlayTab } from './components/PlayTab.tsx'
 import { PreferencesTab } from './components/PreferencesTab.tsx'
+import { PuzzleTab } from './components/PuzzleTab.tsx'
 import type { Mode } from './types.ts'
 
 const PATH_TO_MODE: Record<string, Mode> = {
   '/': 'play',
   '/play': 'play',
+  '/puzzles': 'puzzles',
   '/preferences': 'preferences',
 }
 
 const MODE_TO_PATH: Record<Mode, string> = {
   play: '/',
+  puzzles: '/puzzles',
   preferences: '/preferences',
 }
 
@@ -46,6 +49,18 @@ export default function App() {
           actions={
             <>
               <button
+                aria-label="Puzzles"
+                className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
+                  mode === 'puzzles'
+                    ? 'bg-[var(--ink)] text-[var(--paper)]'
+                    : 'text-[var(--muted)] hover:text-[var(--ink)]'
+                }`}
+                onClick={() => navigate(mode === 'puzzles' ? 'play' : 'puzzles')}
+              >
+                <PuzzleIcon className="h-4 w-4" strokeWidth={1.7} />
+              </button>
+              <button
+                aria-label="Preferences"
                 className={`flex items-center gap-1 rounded-lg px-3 py-2 min-h-[2.75rem] min-w-[2.75rem] text-xs font-bold transition ${
                   mode === 'preferences'
                     ? 'bg-[var(--ink)] text-[var(--paper)]'
@@ -63,6 +78,12 @@ export default function App() {
     >
       <div className="relative w-full h-full">
         {mode === 'play' && <PlayTab settings={settings} updateSettings={updateSettings} />}
+        {mode === 'puzzles' && (
+          <PuzzleTab
+            flipped={settings.boardFlipped}
+            onFlip={() => updateSettings({ boardFlipped: !settings.boardFlipped })}
+          />
+        )}
         {mode === 'preferences' && (
           <section className="rounded-[1.25rem] bg-[var(--panel-quiet)] p-3 sm:p-4 lg:rounded-[1.5rem] lg:p-5">
             <PreferencesTab settings={settings} updateSettings={updateSettings} />

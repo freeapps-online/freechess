@@ -1,4 +1,15 @@
-export type Mode = 'play' | 'preferences'
+export type Mode = 'play' | 'puzzles' | 'preferences'
+
+export interface Puzzle {
+  id: string
+  fen: string
+  // Space-separated UCI moves: first is opponent's setup move, rest is the solution
+  moves: string
+  rating: number
+  themes: string[]
+}
+
+export type PuzzleStatus = 'playing' | 'solved' | 'failed'
 
 export type Difficulty = 1 | 2 | 3 | 4 | 5
 
