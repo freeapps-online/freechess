@@ -301,6 +301,13 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
     }
   }, [undoMovePair])
 
+  const handleResign = useCallback(() => {
+    if (gameStatus !== 'playing') return
+    setGameStatus('resigned')
+    setCoaching('You resigned.')
+    if (!muted) speech.speak('You resigned.')
+  }, [gameStatus, !muted])
+
   const flipBoard = useCallback(() => {
     updateSettings({ boardFlipped: !settings.boardFlipped })
   }, [settings.boardFlipped, updateSettings])
@@ -356,6 +363,20 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
       return i + 1
     })
   }, [history.length])
+
+  // Keyboard nav: arrow keys step through review mode; Escape exits review.
+  useEffect(() => {
+    if (history.length === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); prevReview() }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); nextReview() }
+      else if (e.key === 'Escape' && inReview) { e.preventDefault(); exitReview() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [history.length, inReview, prevReview, nextReview, exitReview])
 
   const opponentBadge = thinking
     ? <span className="ml-auto text-xs text-[var(--muted)] animate-pulse">Thinking...</span>
@@ -429,6 +450,8 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
           onUndo={handleUndo}
           canUndo={history.length >= 2}
           onFlip={flipBoard}
+          onResign={handleResign}
+          canResign={gameStatus === 'playing' && history.length > 0}
           microphoneOn={settings.microphone}
           onToggleMic={() => updateSettings({ microphone: !settings.microphone })}
         />

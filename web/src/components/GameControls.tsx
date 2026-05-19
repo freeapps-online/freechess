@@ -3,16 +3,27 @@ interface GameControlsProps {
   onUndo: () => void
   canUndo: boolean
   onFlip: () => void
+  onResign?: () => void
+  canResign?: boolean
   microphoneOn: boolean
   onToggleMic: () => void
 }
 
-export function GameControls({ onNewGame, onUndo, canUndo, onFlip, microphoneOn, onToggleMic }: GameControlsProps) {
+export function GameControls({ onNewGame, onUndo, canUndo, onFlip, onResign, canResign, microphoneOn, onToggleMic }: GameControlsProps) {
   return (
     <div className="flex gap-1.5 landscape:gap-1 overflow-x-auto shrink-0">
       <ControlButton onClick={onNewGame}>New Game</ControlButton>
       <ControlButton onClick={onUndo} disabled={!canUndo}>Undo</ControlButton>
       <ControlButton onClick={onFlip}>Flip</ControlButton>
+      {onResign && (
+        <button
+          className="rounded-[0.75rem] border border-[var(--line)] bg-[var(--glass)] px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold text-[var(--danger,#e85c5c)] hover:bg-[var(--glass-hover)] disabled:opacity-30"
+          onClick={onResign}
+          disabled={!canResign}
+        >
+          Resign
+        </button>
+      )}
       <button
         className={`rounded-[0.75rem] border px-3 min-h-[2.75rem] min-w-[2.75rem] text-xs font-semibold ${
           microphoneOn

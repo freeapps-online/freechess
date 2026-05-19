@@ -255,6 +255,19 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
     })
   }, [chess, fen])
 
+  useEffect(() => {
+    if (chess.history().length === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); prevReview() }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); nextReview() }
+      else if (e.key === 'Escape' && inReview) { e.preventDefault(); exitReview() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [chess, fen, inReview, prevReview, nextReview, exitReview])
+
   const opening = useMemo(() => findOpening(chess.history()), [chess, fen])
 
   const [pgnCopied, setPgnCopied] = useState(false)
