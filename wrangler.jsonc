@@ -2,13 +2,9 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "freechessapp",
   "pages_build_output_dir": "./web/dist",
-  "compatibility_date": "2026-05-01",
-  "durable_objects": {
-    "bindings": [
-      { "name": "GAME", "class_name": "GameDO" }
-    ]
-  },
-  "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["GameDO"] }
-  ]
+  "compatibility_date": "2026-05-01"
+  // Multiplayer (WebSocket Durable Objects) was here but moved to
+  // progamestore-online/chess on 2026-05-20 — Cloudflare Pages can't host
+  // DO-defining workers, and real-time rooms are now a Pro-tier feature
+  // per ~/dev/stores/CLAUDE.md.
 }
