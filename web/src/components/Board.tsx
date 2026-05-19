@@ -28,6 +28,13 @@ interface BoardProps {
 export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedSquare, onSquareClick, previewFen, previewArrow, previewLabel = 'Best alternative' }: BoardProps) {
   const [dragFrom, setDragFrom] = useState<Square | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
+  // When the player drops or taps a pawn onto the back rank, we hold the move
+  // here until they pick a piece. null = no pending promotion.
+  const [pendingPromotion, setPendingPromotion] = useState<{
+    from: Square
+    to: Square
+    color: 'w' | 'b'
+  } | null>(null)
 
   const isPreview = !!previewFen
   const displayChess = isPreview ? new Chess(previewFen!) : chess
@@ -51,7 +58,11 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
       if (legalTargets.includes(sq)) {
         const piece = chess.get(selectedSquare)
         const isPromotion = piece?.type === 'p' && (sq[1] === '8' || sq[1] === '1')
-        onMove(selectedSquare, sq, isPromotion ? 'q' : undefined)
+        if (isPromotion && piece) {
+          setPendingPromotion({ from: selectedSquare, to: sq, color: piece.color })
+          return
+        }
+        onMove(selectedSquare, sq)
         onSquareClick?.(null)
         return
       }
@@ -130,14 +141,30 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
       if (to !== dragFrom) {
         const piece = chess.get(dragFrom)
         const isPromotion = piece?.type === 'p' && (to[1] === '8' || to[1] === '1')
-        onMove(dragFrom, to, isPromotion ? 'q' : undefined)
-        onSquareClick?.(null)
+        if (isPromotion && piece) {
+          setPendingPromotion({ from: dragFrom, to, color: piece.color })
+        } else {
+          onMove(dragFrom, to)
+          onSquareClick?.(null)
+        }
       }
     }
 
     setDragFrom(null)
     setDragPos(null)
   }, [dragFrom, chess, files, ranks, onMove, onSquareClick])
+
+  const confirmPromotion = useCallback((piece: 'q' | 'r' | 'b' | 'n') => {
+    if (!pendingPromotion) return
+    onMove(pendingPromotion.from, pendingPromotion.to, piece)
+    setPendingPromotion(null)
+    onSquareClick?.(null)
+  }, [pendingPromotion, onMove, onSquareClick])
+
+  const cancelPromotion = useCallback(() => {
+    setPendingPromotion(null)
+    onSquareClick?.(null)
+  }, [onSquareClick])
 
   return (
     <div className="chess-board-wrap relative aspect-square select-none w-full max-h-[calc(100svh-11rem)] landscape:max-h-[calc(100svh-8.5rem)] lg:max-h-none">
@@ -296,6 +323,58 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
             {previewLabel}
           </text>
         )}
+
+        {/* Promotion picker overlay */}
+        {!isPreview && pendingPromotion && (() => {
+          const toCol = files.indexOf(pendingPromotion.to[0])
+          const toRow = ranks.indexOf(pendingPromotion.to[1])
+          if (toCol < 0 || toRow < 0) return null
+          // Stack toward the center: if landing on the top half, grow downward;
+          // bottom half, grow upward. The destination square always shows Queen.
+          const direction = toRow < 4 ? 1 : -1
+          const pieces: Array<'q' | 'r' | 'b' | 'n'> = ['q', 'r', 'b', 'n']
+          return (
+            <g>
+              {/* Dim the rest of the board with a click-to-cancel scrim */}
+              <rect
+                x={0}
+                y={0}
+                width={800}
+                height={800}
+                fill="rgba(0,0,0,0.55)"
+                style={{ cursor: 'pointer' }}
+                onClick={cancelPromotion}
+              />
+              {pieces.map((p, i) => {
+                const row = toRow + direction * i
+                if (row < 0 || row > 7) return null
+                const cx = toCol * 100
+                const cy = row * 100
+                return (
+                  <g key={p} style={{ cursor: 'pointer' }} onClick={() => confirmPromotion(p)}>
+                    <rect
+                      x={cx}
+                      y={cy}
+                      width={100}
+                      height={100}
+                      fill="var(--glass)"
+                      stroke="var(--accent)"
+                      strokeWidth={i === 0 ? 4 : 2}
+                    />
+                    <image
+                      href={pieceHref(pendingPromotion.color, p)}
+                      x={cx + 6}
+                      y={cy + 6}
+                      width={88}
+                      height={88}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  </g>
+                )
+              })}
+            </g>
+          )
+        })()}
 
         {/* Dragged piece */}
         {!isPreview && dragPos && dragFrom && (() => {
