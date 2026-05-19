@@ -16,6 +16,7 @@ import { parseVoiceMove } from '../services/voiceMoves.ts'
 import { findOpening } from '../services/openings.ts'
 import { buildPgn, copyToClipboard } from '../services/pgn.ts'
 import { computeInitialPlayState, persistPlayState } from '../services/playPersistence.ts'
+import { playSoundForMove } from '../services/sounds.ts'
 import { speech } from '../services/speech.ts'
 import { useSound } from '@freegamestore/games'
 import { useSpeech } from '../hooks.ts'
@@ -122,10 +123,11 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
       : findBestMove(chess, settings.difficulty)
 
     if (move) {
-      chess.move(move)
+      const played = chess.move(move)
       setFen(chess.fen())
       setLastMove({ from: move.from, to: move.to })
       setSelectedSquare(null)
+      playSoundForMove(played, muted)
 
       const desc = describeMoveSpoken(move.san, chess.turn() === 'w' ? 'b' : 'w')
       if (!muted) speech.speak(desc)
@@ -160,6 +162,7 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
       setLastMove({ from, to })
       setSelectedSquare(null)
       setAlternativePreview(null)
+      playSoundForMove(move, muted)
       updateGameStatus()
 
       // Analyze async (don't block the move)

@@ -8,7 +8,9 @@ import { PlayerRow } from './PlayerRow.tsx'
 import { analyzePlayerMove } from '../services/analysis.ts'
 import { findOpening } from '../services/openings.ts'
 import { buildPgn, copyToClipboard } from '../services/pgn.ts'
+import { playSoundForMove } from '../services/sounds.ts'
 import { stockfish } from '../services/stockfish.ts'
+import { useSound } from '@freegamestore/games'
 import type { GameStatus, MoveAnalysis } from '../types.ts'
 
 type Color = 'w' | 'b'
@@ -34,6 +36,7 @@ interface MultiplayerTabProps {
 }
 
 export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFlip }: MultiplayerTabProps) {
+  const { muted } = useSound()
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState(chess.fen())
   const [yourColor, setYourColor] = useState<Color | 'spectator' | null>(null)
@@ -106,9 +109,10 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
             const to = msg.uci.slice(2, 4)
             const promotion = msg.uci.length > 4 ? msg.uci[4] : undefined
             try {
-              chess.move({ from, to, promotion })
+              const played = chess.move({ from, to, promotion })
               setFen(chess.fen())
               setLastMove({ from: from as Square, to: to as Square })
+              if (played) playSoundForMove(played, muted)
             } catch {}
           }
           setGameOver(msg.gameOver ?? null)
@@ -166,9 +170,10 @@ export function MultiplayerTab({ gameId, onCreateGame, onLoadGame, flipped, onFl
     setFen(chess.fen())
     setLastMove({ from, to })
     setSelectedSquare(null)
+    playSoundForMove(move, muted)
     sendMessage({ type: 'move', uci })
     return true
-  }, [chess, yourColor, gameOver, sendMessage])
+  }, [chess, yourColor, gameOver, sendMessage, muted])
 
   const handleNewGame = useCallback(async () => {
     const id = await onCreateGame()
