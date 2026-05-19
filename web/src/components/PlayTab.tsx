@@ -15,6 +15,7 @@ import { analyzePlayerMove, describeMoveSpoken, getPositionAdvice } from '../ser
 import { parseVoiceMove } from '../services/voiceMoves.ts'
 import { findOpening } from '../services/openings.ts'
 import { buildPgn, copyToClipboard } from '../services/pgn.ts'
+import { computeInitialPlayState, persistPlayState } from '../services/playPersistence.ts'
 import { speech } from '../services/speech.ts'
 import { useSound } from '@freegamestore/games'
 import { useSpeech } from '../hooks.ts'
@@ -36,11 +37,12 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 export function PlayTab({ settings, updateSettings }: PlayTabProps) {
   const { muted } = useSound()
-  const [chess] = useState(() => new Chess())
-  const [fen, setFen] = useState(chess.fen())
-  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null)
+  const [initial] = useState(() => computeInitialPlayState(settings.playerColor))
+  const [chess] = useState(initial.chess)
+  const [fen, setFen] = useState(initial.fen)
+  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(initial.lastMove)
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
-  const [analyses, setAnalyses] = useState<Record<number, MoveAnalysis>>({})
+  const [analyses, setAnalyses] = useState<Record<number, MoveAnalysis>>(initial.analyses)
   const [alternativePreview, setAlternativePreview] = useState<{
     moveIndex: number
     fen: string
@@ -50,7 +52,7 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
   // Review mode: null = live game, number = show position after move N
   const [reviewMoveIndex, setReviewMoveIndex] = useState<number | null>(null)
   const [coaching, setCoaching] = useState<string | null>(null)
-  const [gameStatus, setGameStatus] = useState<GameStatus>('playing')
+  const [gameStatus, setGameStatus] = useState<GameStatus>(initial.gameStatus)
   const [thinking, setThinking] = useState(false)
   const [evaluation, setEvaluation] = useState(0)
   const [heardText, setHeardText] = useState('')
@@ -80,6 +82,11 @@ export function PlayTab({ settings, updateSettings }: PlayTabProps) {
       setEvaluation(evaluatePosition(chess))
     }
   }, [fen, chess, sfReady, thinking])
+
+  // Persist the game so a reload doesn't lose it. Clear storage on fresh game.
+  useEffect(() => {
+    persistPlayState({ chess, analyses, gameStatus, playerColor: settings.playerColor })
+  }, [fen, analyses, gameStatus, settings.playerColor, chess])
 
   const updateGameStatus = useCallback(() => {
     if (chess.isCheckmate()) {
