@@ -14,7 +14,7 @@ export function GameOverBanner({ status, playerLost, onPlayAgain }: GameOverBann
         {status === 'checkmate' && (playerLost ? 'You Lost' : 'You Won!')}
         {status === 'stalemate' && 'Stalemate'}
         {status === 'draw' && 'Draw'}
-        {status === 'resigned' && 'You Resigned'}
+        {status === 'resigned' && (playerLost ? 'You Resigned' : 'Opponent Resigned · You Won!')}
       </div>
       <button
         className="mt-2 rounded-full bg-[var(--accent)] px-6 min-h-[2.75rem] text-sm font-semibold text-white"
