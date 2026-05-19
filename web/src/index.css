@@ -5,6 +5,7 @@
 :root {
   color-scheme: light;
   --paper: #ffffff;
+  --bg: var(--paper);
   --paper-deep: #f7f7f7;
   --ink: #111111;
   --muted: #666666;
@@ -54,6 +55,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
   --paper: #000000;
+  --bg: var(--paper);
   --paper-deep: #0a0a0a;
   --ink: #f0f0f0;
   --muted: #888888;
