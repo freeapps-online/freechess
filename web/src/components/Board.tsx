@@ -230,12 +230,13 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         {files.map((file, col) => (
           <text
             key={`file-${file}`}
-            x={col * 100 + 90}
-            y={792}
-            fontSize={13}
-            fontWeight={600}
-            fill={(col + (flipped ? 1 : 0)) % 2 === 0 ? 'var(--board-dark)' : 'var(--board-light)'}
-            style={{ pointerEvents: 'none' }}
+            x={col * 100 + 92}
+            y={776}
+            fontSize={22}
+            fontWeight={700}
+            textAnchor="end"
+            fill={(col + 7) % 2 === 0 ? 'var(--board-dark)' : 'var(--board-light)'}
+            style={{ pointerEvents: 'none', opacity: 0.6 }}
           >
             {file}
           </text>
@@ -245,12 +246,12 @@ export function Board({ chess, flipped, playerColor, onMove, lastMove, selectedS
         {ranks.map((rank, row) => (
           <text
             key={`rank-${rank}`}
-            x={4}
-            y={row * 100 + 16}
-            fontSize={13}
-            fontWeight={600}
-            fill={(row + (flipped ? 1 : 0)) % 2 === 0 ? 'var(--board-dark)' : 'var(--board-light)'}
-            style={{ pointerEvents: 'none' }}
+            x={8}
+            y={row * 100 + 24}
+            fontSize={22}
+            fontWeight={700}
+            fill={row % 2 === 0 ? 'var(--board-dark)' : 'var(--board-light)'}
+            style={{ pointerEvents: 'none', opacity: 0.6 }}
           >
             {rank}
           </text>
