@@ -5,3 +5,6 @@ dist
 *.log
 .gstack/
 .wrangler/
+
+.env
+.env.*
