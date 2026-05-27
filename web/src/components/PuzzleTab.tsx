@@ -12,9 +12,8 @@ interface PuzzleTabProps {
 
 export function PuzzleTab({ flipped, onFlip }: PuzzleTabProps) {
   const [puzzles, setPuzzles] = useState<Puzzle[] | null>(null)
-  const [daily, setDaily] = useState<Puzzle | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [puzzleIdx, setPuzzleIdx] = useState<number | 'daily' | null>(null)
+  const [puzzleIdx, setPuzzleIdx] = useState<number | null>(null)
   const [chess] = useState(() => new Chess())
   const [fen, setFen] = useState(chess.fen())
   const [status, setStatus] = useState<PuzzleStatus>('playing')
@@ -27,24 +26,18 @@ export function PuzzleTab({ flipped, onFlip }: PuzzleTabProps) {
   })
   const opponentTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load bundled puzzles + try Lichess daily
+  // Load bundled puzzles
   useEffect(() => {
     fetch('/puzzles.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then((data: Puzzle[]) => setPuzzles(data))
       .catch(e => setLoadError(`Couldn't load puzzles (${e}). Refresh to retry.`))
-
-    fetch('https://lichess.org/api/puzzle/daily')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.puzzle && d?.game) setDaily(lichessDailyToPuzzle(d)) })
-      .catch(() => {})
   }, [])
 
   const currentPuzzle: Puzzle | null = useMemo(() => {
-    if (puzzleIdx === 'daily') return daily
     if (puzzleIdx === null || !puzzles) return null
     return puzzles[puzzleIdx] ?? null
-  }, [puzzleIdx, puzzles, daily])
+  }, [puzzleIdx, puzzles])
 
   const solutionMoves = useMemo(() => currentPuzzle?.moves.split(' ') ?? [], [currentPuzzle])
   // The first move in the list is the opponent's setup; user plays moves at odd indices.
@@ -191,11 +184,6 @@ export function PuzzleTab({ flipped, onFlip }: PuzzleTabProps) {
           <span className="text-xs font-semibold text-[var(--ink)] lg:text-sm">
             Puzzle #{currentPuzzle.id} · Rating {currentPuzzle.rating}
           </span>
-          {puzzleIdx === 'daily' && (
-            <span className="ml-1 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--accent)]">
-              Daily
-            </span>
-          )}
         </div>
 
         <div className="flex-1 min-h-0">
@@ -232,9 +220,6 @@ export function PuzzleTab({ flipped, onFlip }: PuzzleTabProps) {
           <ActionButton onClick={pickRandom}>Next Puzzle</ActionButton>
           <ActionButton onClick={showHint} disabled={status !== 'playing'}>Hint</ActionButton>
           <ActionButton onClick={onFlip}>Flip</ActionButton>
-          {daily && (
-            <ActionButton onClick={() => setPuzzleIdx('daily')}>Today's Puzzle</ActionButton>
-          )}
         </div>
 
         {feedback && (
@@ -319,35 +304,3 @@ function sameDestinationMate(chess: Chess, from: Square, to: Square, promotion?:
   }
 }
 
-interface LichessDaily {
-  puzzle: { id: string; rating: number; themes: string[]; solution: string[]; initialPly: number }
-  game: { pgn: string; clock: string; rated: boolean; players: unknown[]; perf: unknown }
-}
-
-function lichessDailyToPuzzle(d: LichessDaily): Puzzle | null {
-  // Lichess daily returns the GAME (PGN up to and including the puzzle's setup move).
-  // We need the FEN *before* the setup move. Replay PGN, undo last, get FEN.
-  try {
-    const chess = new Chess()
-    chess.loadPgn(d.game.pgn)
-    // initialPly = the ply at which the puzzle starts (0-indexed). Move number = floor(initialPly/2)+1.
-    // The position at initialPly is the position AFTER the setup move. We want BEFORE — so undo once.
-    chess.undo()
-    const fen = chess.fen()
-    // Reconstruct UCI solution prefixed with the setup move (last move of the PGN)
-    const history = new Chess()
-    history.loadPgn(d.game.pgn)
-    const allMoves = history.history({ verbose: true })
-    const setupMove = allMoves[allMoves.length - 1]
-    const setupUci = `${setupMove.from}${setupMove.to}${setupMove.promotion ?? ''}`
-    return {
-      id: d.puzzle.id,
-      fen,
-      moves: [setupUci, ...d.puzzle.solution].join(' '),
-      rating: d.puzzle.rating,
-      themes: d.puzzle.themes,
-    }
-  } catch {
-    return null
-  }
-}
